@@ -9,8 +9,46 @@
 <body>
   <main class="app">
     <section id="lobby" class="screen screen-active">
+      <div class="money-display">
+        <img class="money-icon" src="outputs/錢.png" alt="錢">
+        <span>0</span>
+      </div>
       <h1>黃葉綠豆</h1>
+      <img class="lobby-hero" src="outputs/愛的家.png?v=2" alt="愛的家">
+      <button id="difficultyInfo" class="difficulty-info" type="button">
+        <span id="difficultyText">難度：普通</span>
+        <span id="bossCountText">BOSS：1 隻</span>
+        <span id="multiplierText">倍率：1.0x</span>
+        <span>會獲得的東西：金錢</span>
+      </button>
       <button id="startBtn" class="primary-button" type="button">開始</button>
+
+      <div id="difficultyModal" class="settings-modal">
+        <div class="settings-box">
+          <h2>設定</h2>
+
+          <label>
+            難度
+            <select id="difficultySelect">
+              <option value="簡單">簡單</option>
+              <option value="普通" selected>普通</option>
+              <option value="困難">困難</option>
+            </select>
+          </label>
+
+          <label>
+            BOSS 數量
+            <input id="bossCountInput" type="number" min="1" max="8" value="1">
+          </label>
+
+          <label>
+            倍率
+            <input id="multiplierInput" type="number" min="0.1" step="0.1" value="1.0">
+          </label>
+
+          <button id="closeDifficultyBtn" class="small-button" type="button">完成</button>
+        </div>
+      </div>
     </section>
 
     <section id="game" class="screen">

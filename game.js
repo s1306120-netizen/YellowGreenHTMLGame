@@ -1,6 +1,15 @@
 const lobbyScreen = document.getElementById("lobby");
 const gameScreen = document.getElementById("game");
 const startBtn = document.getElementById("startBtn");
+const difficultyInfo = document.getElementById("difficultyInfo");
+const difficultyModal = document.getElementById("difficultyModal");
+const closeDifficultyBtn = document.getElementById("closeDifficultyBtn");
+const difficultySelect = document.getElementById("difficultySelect");
+const bossCountInput = document.getElementById("bossCountInput");
+const multiplierInput = document.getElementById("multiplierInput");
+const difficultyText = document.getElementById("difficultyText");
+const bossCountText = document.getElementById("bossCountText");
+const multiplierText = document.getElementById("multiplierText");
 const backBtn = document.getElementById("backBtn");
 const resultBackBtn = document.getElementById("resultBackBtn");
 const resultModal = document.getElementById("result");
@@ -48,6 +57,12 @@ function updateHeroPosition() {
 
 function updateBossHpText() {
   bossHpText.textContent = `BOSS HP ${bossHp}/${bossMaxHp}`;
+}
+
+function updateDifficultyInfo() {
+  difficultyText.textContent = `難度：${difficultySelect.value}`;
+  bossCountText.textContent = `BOSS：${bossCountInput.value} 隻`;
+  multiplierText.textContent = `倍率：${Number(multiplierInput.value).toFixed(1)}x`;
 }
 
 function resetBullet() {
@@ -226,6 +241,15 @@ startBtn.addEventListener("click", () => {
   playerLane = 1;
   updateHeroPosition();
   startEnemyActions();
+});
+
+difficultyInfo.addEventListener("click", () => {
+  difficultyModal.classList.add("is-active");
+});
+
+closeDifficultyBtn.addEventListener("click", () => {
+  updateDifficultyInfo();
+  difficultyModal.classList.remove("is-active");
 });
 
 backBtn.addEventListener("click", () => {

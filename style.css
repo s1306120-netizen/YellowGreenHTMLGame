@@ -36,19 +36,117 @@ button {
 }
 
 #lobby {
+  position: relative;
+  min-height: 70vh;
+  justify-items: center;
+  align-content: center;
+  gap: 24px;
   text-align: center;
 }
 
+#lobby.screen-active {
+  display: grid;
+}
+
 h1 {
-  margin: 0 0 28px;
+  margin: 0;
   font-size: 44px;
   letter-spacing: 0;
+}
+
+.money-display {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(36, 49, 38, 0.12);
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.money-icon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.lobby-hero {
+  width: 150px;
+  max-width: 60%;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.difficulty-info {
+  width: min(100%, 280px);
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 2px solid rgba(111, 91, 55, 0.55);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #243126;
+  text-align: center;
+  font-size: 17px;
+  cursor: pointer;
+}
+
+#startBtn {
+  margin-top: 34px;
 }
 
 h2 {
   margin: 0 0 32px;
   font-size: 56px;
   letter-spacing: 0;
+}
+
+.settings-modal {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  place-items: center;
+  background: rgba(36, 49, 38, 0.45);
+}
+
+.settings-modal.is-active {
+  display: grid;
+}
+
+.settings-box {
+  width: min(86%, 320px);
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+  border: 3px solid #6f5b37;
+  border-radius: 8px;
+  background: #f1e7cf;
+}
+
+.settings-box h2 {
+  margin-bottom: 4px;
+  font-size: 36px;
+  text-align: center;
+}
+
+.settings-box label {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+}
+
+.settings-box select,
+.settings-box input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 2px solid rgba(111, 91, 55, 0.55);
+  border-radius: 8px;
+  font: inherit;
 }
 
 .primary-button,

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>黃葉綠豆</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <section id="lobby" class="screen screen-active">
+      <h1>黃葉綠豆</h1>
+      <button id="startBtn" class="primary-button" type="button">開始</button>
+    </section>
+
+    <section id="game" class="screen">
+      <div class="battle-layout">
+        <div id="bossHpText" class="boss-hp-text">BOSS HP 100/100</div>
+        <img id="enemy" class="enemy" src="outputs/小豬.png" alt="小豬">
+
+        <div class="arena" aria-label="戰鬥場地">
+          <div class="lane" data-lane="0">左</div>
+          <div class="lane" data-lane="1">中</div>
+          <div class="lane" data-lane="2">右</div>
+          <img id="bullet" class="bullet" src="outputs/小豬的子彈.png" alt="小豬的子彈">
+          <img id="playerBullet" class="player-bullet" src="outputs/玩家子彈.png" alt="玩家子彈">
+          <img id="hero" class="hero" src="outputs/愛的家.png?v=2" alt="愛的家">
+        </div>
+
+        <div class="battle-footer">
+          <button id="backBtn" class="small-button" type="button">回大廳</button>
+        </div>
+
+        <div id="result" class="result-modal">
+          <div class="result-box">
+            <h2>失敗</h2>
+            <button id="resultBackBtn" class="small-button" type="button">回大廳</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>

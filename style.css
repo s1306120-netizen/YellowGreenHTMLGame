@@ -187,6 +187,7 @@ h2 {
   color: #fff;
   background: rgba(36, 49, 38, 0.8);
   font-size: 16px;
+  text-align: center;
   transform: translateX(-50%);
   white-space: nowrap;
 }
@@ -303,6 +304,12 @@ h2 {
   border: 3px solid #6f5b37;
   border-radius: 8px;
   background: #f1e7cf;
+}
+
+.result-money-text {
+  margin-bottom: 18px;
+  font-size: 22px;
+  font-weight: 500;
 }
 
 @media (max-width: 360px) {

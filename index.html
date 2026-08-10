@@ -11,7 +11,7 @@
     <section id="lobby" class="screen screen-active">
       <div class="money-display">
         <img class="money-icon" src="outputs/錢.png" alt="錢">
-        <span>0</span>
+        <span id="moneyText">0</span>
       </div>
       <h1>黃葉綠豆</h1>
       <img class="lobby-hero" src="outputs/愛的家.png?v=2" alt="愛的家">
@@ -19,7 +19,7 @@
         <span id="difficultyText">難度：普通</span>
         <span id="bossCountText">BOSS：1 隻</span>
         <span id="multiplierText">倍率：1.0x</span>
-        <span>會獲得的東西：金錢</span>
+        <span id="rewardText">會獲得的東西：金錢100</span>
       </button>
       <button id="startBtn" class="primary-button" type="button">開始</button>
 
@@ -43,7 +43,7 @@
 
           <label>
             倍率
-            <input id="multiplierInput" type="number" min="0.1" step="0.1" value="1.0">
+            <input id="multiplierInput" type="number" min="1" step="0.5" value="1.0">
           </label>
 
           <button id="closeDifficultyBtn" class="small-button" type="button">完成</button>
@@ -53,7 +53,11 @@
 
     <section id="game" class="screen">
       <div class="battle-layout">
-        <div id="bossHpText" class="boss-hp-text">BOSS HP 100/100</div>
+        <div id="bossHpText" class="boss-hp-text">
+          <div>BOSS數量1/1</div>
+          <div>小豬</div>
+          <div>HP:100/100</div>
+        </div>
         <img id="enemy" class="enemy" src="outputs/小豬.png" alt="小豬">
 
         <div class="arena" aria-label="戰鬥場地">
@@ -71,7 +75,8 @@
 
         <div id="result" class="result-modal">
           <div class="result-box">
-            <h2>失敗</h2>
+            <h2 id="resultTitle">失敗</h2>
+            <div id="resultMoneyText" class="result-money-text">獲得金錢：0</div>
             <button id="resultBackBtn" class="small-button" type="button">回大廳</button>
           </div>
         </div>

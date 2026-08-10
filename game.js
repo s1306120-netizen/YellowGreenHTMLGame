@@ -10,9 +10,13 @@ const multiplierInput = document.getElementById("multiplierInput");
 const difficultyText = document.getElementById("difficultyText");
 const bossCountText = document.getElementById("bossCountText");
 const multiplierText = document.getElementById("multiplierText");
+const rewardText = document.getElementById("rewardText");
+const moneyText = document.getElementById("moneyText");
 const backBtn = document.getElementById("backBtn");
 const resultBackBtn = document.getElementById("resultBackBtn");
 const resultModal = document.getElementById("result");
+const resultTitle = document.getElementById("resultTitle");
+const resultMoneyText = document.getElementById("resultMoneyText");
 const arena = document.querySelector(".arena");
 const hero = document.getElementById("hero");
 const enemy = document.getElementById("enemy");
@@ -24,6 +28,14 @@ let playerLane = 1;
 let bulletLane = 1;
 let playerBulletLane = 1;
 let bossHp = 100;
+let bossMaxHp = 100;
+let currentBossDefense = 0;
+let currentBossName = "小豬";
+let currentBossNumber = 1;
+let totalBossCount = 1;
+let battleMultiplier = 1;
+let money = 0;
+let battleReward = 100;
 let touchStartX = 0;
 let bulletTimer = null;
 let warningTimer = null;
@@ -35,10 +47,17 @@ let hitAnimation = null;
 let playerHitAnimation = null;
 let isGameOver = false;
 
-const bossMaxHp = 100;
-const bossDefense = 0;
 const playerBulletAttack = 10;
 const playerBulletPierce = 0;
+const rewardByDifficulty = {
+  "簡單": 100,
+  "普通": 500,
+  "困難": 1000,
+};
+
+const bossData = [
+  { name: "小豬", difficulty: "簡單", hp: 100, defense: 0 },
+];
 
 const enemyImages = [
   "outputs/小豬(準備攻擊左).png?v=2",
@@ -56,13 +75,35 @@ function updateHeroPosition() {
 }
 
 function updateBossHpText() {
-  bossHpText.textContent = `BOSS HP ${bossHp}/${bossMaxHp}`;
+  bossHpText.innerHTML = `
+    <div>BOSS數量${currentBossNumber}/${totalBossCount}</div>
+    <div>${currentBossName}</div>
+    <div>HP:${bossHp}/${bossMaxHp}</div>
+  `;
 }
 
 function updateDifficultyInfo() {
+  const multiplier = Math.max(1, Math.round(Number(multiplierInput.value) * 2) / 2);
+  const bossCount = Math.max(1, Number(bossCountInput.value));
+  const reward = rewardByDifficulty[difficultySelect.value] * bossCount * multiplier;
+
+  multiplierInput.value = multiplier.toFixed(1);
+  bossCountInput.value = bossCount;
   difficultyText.textContent = `難度：${difficultySelect.value}`;
-  bossCountText.textContent = `BOSS：${bossCountInput.value} 隻`;
-  multiplierText.textContent = `倍率：${Number(multiplierInput.value).toFixed(1)}x`;
+  bossCountText.textContent = `BOSS：${bossCount} 隻`;
+  multiplierText.textContent = `倍率：${multiplier.toFixed(1)}x`;
+  rewardText.textContent = `會獲得的東西：金錢${reward}`;
+}
+
+function updateMoneyText() {
+  moneyText.textContent = money;
+}
+
+function getBattleReward() {
+  const bossCount = Math.max(1, Number(bossCountInput.value));
+  const multiplier = Math.max(1, Math.round(Number(multiplierInput.value) * 2) / 2);
+
+  return rewardByDifficulty[difficultySelect.value] * bossCount * multiplier;
 }
 
 function resetBullet() {
@@ -93,15 +134,50 @@ function resetGameOver() {
 }
 
 function resetBoss() {
+  const availableBosses = bossData.filter((boss) => boss.difficulty === difficultySelect.value);
+  const firstBoss = availableBosses[0];
+
+  if (!firstBoss) {
+    return false;
+  }
+
+  totalBossCount = Math.max(1, Number(bossCountInput.value));
+  battleMultiplier = Math.max(1, Math.round(Number(multiplierInput.value) * 2) / 2);
+  battleReward = getBattleReward();
+  currentBossName = firstBoss.name;
+  currentBossDefense = firstBoss.defense;
+  bossMaxHp = Math.round(firstBoss.hp * battleMultiplier);
+  currentBossNumber = 1;
   bossHp = bossMaxHp;
+  enemy.src = `outputs/${currentBossName}.png`;
   updateBossHpText();
+  return true;
+}
+
+function showResult(title, earnedMoney) {
+  isGameOver = true;
+  stopEnemyActions();
+  resultTitle.textContent = title;
+  resultMoneyText.textContent = `獲得金錢：${earnedMoney}`;
+  resultModal.classList.add("is-active");
 }
 
 function gameOver() {
-  isGameOver = true;
-  stopEnemyActions();
   hero.classList.add("is-dead");
-  resultModal.classList.add("is-active");
+  showResult("失敗", 0);
+}
+
+function winBattle() {
+  money += battleReward;
+  updateMoneyText();
+  showResult("勝利", battleReward);
+}
+
+function goToNextBoss() {
+  currentBossNumber += 1;
+  bossHp = bossMaxHp;
+  enemy.src = `outputs/${currentBossName}.png`;
+  updateBossHpText();
 }
 
 function checkBulletHit() {
@@ -133,11 +209,19 @@ function watchBulletHit() {
 }
 
 function damageBoss() {
-  const damage = Math.abs(playerBulletAttack - Math.abs(bossDefense - playerBulletPierce));
+  const damage = Math.abs(playerBulletAttack - Math.abs(currentBossDefense - playerBulletPierce));
 
   bossHp = Math.max(0, bossHp - damage);
   updateBossHpText();
   resetPlayerBullet();
+
+  if (bossHp <= 0) {
+    if (currentBossNumber >= totalBossCount) {
+      winBattle();
+    } else {
+      goToNextBoss();
+    }
+  }
 }
 
 function checkPlayerBulletHit() {
@@ -182,7 +266,7 @@ function shootBullet() {
 
     bullet.classList.add("is-active");
     bullet.style.setProperty("--bullet-y", `${bulletEndY}px`);
-    enemy.src = "outputs/小豬.png";
+    enemy.src = `outputs/${currentBossName}.png`;
     hitAnimation = requestAnimationFrame(watchBulletHit);
     bulletEndTimer = setTimeout(resetBullet, 620);
   }, 500);
@@ -207,7 +291,7 @@ function shootPlayerBullet() {
 function startEnemyActions() {
   stopEnemyActions();
   resetBullet();
-  enemy.src = "outputs/小豬.png";
+  enemy.src = `outputs/${currentBossName}.png`;
   bulletTimer = setInterval(shootBullet, 1600);
   playerAttackDelayTimer = setTimeout(() => {
     playerAttackTimer = setInterval(shootPlayerBullet, 1000);
@@ -231,13 +315,17 @@ function stopEnemyActions() {
   playerBulletEndTimer = null;
   hitAnimation = null;
   playerHitAnimation = null;
-  enemy.src = "outputs/小豬.png";
+  enemy.src = `outputs/${currentBossName}.png`;
 }
 
 startBtn.addEventListener("click", () => {
-  showScreen("game");
   resetGameOver();
-  resetBoss();
+  if (!resetBoss()) {
+    alert("這個難度目前沒有BOSS資料");
+    return;
+  }
+
+  showScreen("game");
   playerLane = 1;
   updateHeroPosition();
   startEnemyActions();
@@ -299,3 +387,5 @@ updateHeroPosition();
 resetBullet();
 resetPlayerBullet();
 updateBossHpText();
+updateDifficultyInfo();
+updateMoneyText();

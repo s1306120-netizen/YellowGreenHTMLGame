@@ -3,7 +3,11 @@ const gameScreen = document.getElementById("game");
 const startBtn = document.getElementById("startBtn");
 const difficultyInfo = document.getElementById("difficultyInfo");
 const difficultyModal = document.getElementById("difficultyModal");
+const heroInfoModal = document.getElementById("heroInfoModal");
 const closeDifficultyBtn = document.getElementById("closeDifficultyBtn");
+const closeHeroInfoBtn = document.getElementById("closeHeroInfoBtn");
+const heroInfoBtn = document.getElementById("heroInfoBtn");
+const heroStatsList = document.getElementById("heroStatsList");
 const difficultySelect = document.getElementById("difficultySelect");
 const bossCountInput = document.getElementById("bossCountInput");
 const multiplierInput = document.getElementById("multiplierInput");
@@ -26,6 +30,7 @@ const enemy = document.getElementById("enemy");
 const bullet = document.getElementById("bullet");
 const playerBullet = document.getElementById("playerBullet");
 const bossHpText = document.getElementById("bossHpText");
+const damageText = document.getElementById("damageText");
 
 let playerLane = 1;
 let bulletLane = 1;
@@ -56,8 +61,6 @@ let isKoPlaying = false;
 let canPlayerDamage = false;
 let isMoving = false;
 
-const playerBulletAttack = 10;
-const playerBulletPierce = 0;
 const rewardByDifficulty = {
   "簡單": 100,
   "普通": 500,
@@ -67,6 +70,15 @@ const rewardByDifficulty = {
 const bossData = [
   { name: "小豬", difficulty: "簡單", hp: 100, defense: 0 },
 ];
+
+const playerStats = {
+  pierce: 0,
+  attack: 10,
+  moveSpeed: 140,
+  critRate: 5,
+  critDamage: 200,
+  specialEffect: "無",
+};
 
 const enemyImages = [
   "outputs/小豬(準備攻擊左).png?v=2",
@@ -104,8 +116,46 @@ function updateDifficultyInfo() {
   rewardText.textContent = `會獲得的東西：金錢${reward}`;
 }
 
+function updateHeroStatsList() {
+  heroStatsList.innerHTML = `
+    <div>破防：${playerStats.pierce}</div>
+    <div>攻擊力：${playerStats.attack}</div>
+    <div>移動速度：${playerStats.moveSpeed}</div>
+    <div>爆擊率：${playerStats.critRate}%</div>
+    <div>爆擊傷害：${playerStats.critDamage}%</div>
+    <div>特殊效果：${playerStats.specialEffect}</div>
+  `;
+}
+
 function updateMoneyText() {
   moneyText.textContent = money;
+}
+
+function calculatePlayerDamage() {
+  const defenseReduction = Math.max(0, currentBossDefense - playerStats.pierce);
+  const normalDamage = Math.max(0, playerStats.attack - defenseReduction);
+  const isCritical = Math.random() * 100 < playerStats.critRate;
+
+  if (isCritical) {
+    return {
+      amount: Math.round(normalDamage * (playerStats.critDamage / 100)),
+      isCritical: true,
+    };
+  }
+
+  return {
+    amount: normalDamage,
+    isCritical: false,
+  };
+}
+
+function showDamageText(damageResult) {
+  damageText.textContent = damageResult.isCritical ? `爆擊 ${damageResult.amount}` : damageResult.amount;
+  damageText.classList.toggle("is-critical", damageResult.isCritical);
+  damageText.classList.remove("is-active");
+
+  void damageText.offsetWidth;
+  damageText.classList.add("is-active");
 }
 
 function animateMoneyText(fromMoney, toMoney) {
@@ -302,42 +352,16 @@ function damageBoss() {
     return;
   }
 
-  const damage = Math.abs(playerBulletAttack - Math.abs(currentBossDefense - playerBulletPierce));
+  const damageResult = calculatePlayerDamage();
+  const damage = damageResult.amount;
 
   bossHp = Math.max(0, bossHp - damage);
+  showDamageText(damageResult);
   updateBossHpText();
   resetPlayerBullet();
 
   if (bossHp <= 0) {
     playKoEffect();
-  }
-}
-
-function checkPlayerBulletHit() {
-  const playerBulletRect = playerBullet.getBoundingClientRect();
-  const enemyRect = enemy.getBoundingClientRect();
-  const isHit = !(
-    playerBulletRect.right < enemyRect.left ||
-    playerBulletRect.left > enemyRect.right ||
-    playerBulletRect.bottom < enemyRect.top ||
-    playerBulletRect.top > enemyRect.bottom
-  );
-
-  if (isHit) {
-    damageBoss();
-  }
-}
-
-function watchPlayerBulletHit() {
-  if (isGameOver || !playerBullet.classList.contains("is-active")) {
-    playerHitAnimation = null;
-    return;
-  }
-
-  checkPlayerBulletHit();
-
-  if (playerBullet.classList.contains("is-active")) {
-    playerHitAnimation = requestAnimationFrame(watchPlayerBulletHit);
   }
 }
 
@@ -372,8 +396,10 @@ function shootPlayerBullet() {
   requestAnimationFrame(() => {
     playerBullet.classList.add("is-active");
     playerBullet.style.setProperty("--player-bullet-y", "0px");
-    playerHitAnimation = requestAnimationFrame(watchPlayerBulletHit);
-    playerBulletEndTimer = setTimeout(resetPlayerBullet, 480);
+    playerBulletEndTimer = setTimeout(() => {
+      damageBoss();
+      resetPlayerBullet();
+    }, 480);
   });
 }
 
@@ -433,6 +459,15 @@ difficultyInfo.addEventListener("click", () => {
 closeDifficultyBtn.addEventListener("click", () => {
   updateDifficultyInfo();
   difficultyModal.classList.remove("is-active");
+});
+
+heroInfoBtn.addEventListener("click", () => {
+  updateHeroStatsList();
+  heroInfoModal.classList.add("is-active");
+});
+
+closeHeroInfoBtn.addEventListener("click", () => {
+  heroInfoModal.classList.remove("is-active");
 });
 
 backBtn.addEventListener("click", () => {

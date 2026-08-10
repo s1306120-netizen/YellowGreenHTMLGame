@@ -98,6 +98,13 @@ h1 {
   -webkit-user-drag: none;
 }
 
+.hero-info-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
 .lobby-equipment {
   position: absolute;
   width: 58px;
@@ -195,6 +202,13 @@ h2 {
   font: inherit;
 }
 
+.hero-stats-list {
+  display: grid;
+  gap: 8px;
+  text-align: center;
+  font-size: 18px;
+}
+
 .primary-button,
 .small-button {
   border: 0;
@@ -236,6 +250,44 @@ h2 {
   text-align: center;
   transform: translateX(-50%);
   white-space: nowrap;
+}
+
+.damage-text {
+  position: absolute;
+  top: 150px;
+  left: 50%;
+  z-index: 5;
+  color: #b51616;
+  font-size: 26px;
+  font-weight: 700;
+  opacity: 0;
+  transform: translate(-50%, 0);
+  pointer-events: none;
+}
+
+.damage-text.is-active {
+  animation: damage-pop 520ms ease-out;
+}
+
+.damage-text.is-critical {
+  color: #d58a00;
+}
+
+@keyframes damage-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 12px) scale(0.8);
+  }
+
+  25% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1.1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -24px) scale(1);
+  }
 }
 
 .arena {

@@ -20,7 +20,9 @@
         <img class="lobby-equipment equip-armor" src="outputs/空護甲圖.png" alt="空護甲">
         <img class="lobby-equipment equip-shoes" src="outputs/空靴子圖.png" alt="空鞋子">
         <img class="lobby-equipment equip-accessory" src="outputs/空飾品圖.png" alt="空飾品">
-        <img class="lobby-hero" src="outputs/愛的家.png?v=2" alt="愛的家">
+        <button id="heroInfoBtn" class="hero-info-button" type="button">
+          <img class="lobby-hero" src="outputs/愛的家.png?v=2" alt="愛的家">
+        </button>
       </div>
       <button id="difficultyInfo" class="difficulty-info" type="button">
         <span id="difficultyText">難度：普通</span>
@@ -56,6 +58,14 @@
           <button id="closeDifficultyBtn" class="small-button" type="button">完成</button>
         </div>
       </div>
+
+      <div id="heroInfoModal" class="settings-modal">
+        <div class="settings-box">
+          <h2>角色資訊</h2>
+          <div id="heroStatsList" class="hero-stats-list"></div>
+          <button id="closeHeroInfoBtn" class="small-button" type="button">關閉</button>
+        </div>
+      </div>
     </section>
 
     <section id="game" class="screen">
@@ -65,6 +75,7 @@
           <div>小豬</div>
           <div>HP:100/100</div>
         </div>
+        <div id="damageText" class="damage-text"></div>
         <img id="enemy" class="enemy" src="outputs/小豬.png" alt="小豬">
 
         <div class="arena" aria-label="戰鬥場地">

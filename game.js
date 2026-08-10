@@ -60,6 +60,7 @@ let isGameOver = false;
 let isKoPlaying = false;
 let canPlayerDamage = false;
 let isMoving = false;
+let lastMoveTime = -Infinity;
 
 const rewardByDifficulty = {
   "簡單": 100,
@@ -74,9 +75,10 @@ const bossData = [
 const playerStats = {
   pierce: 0,
   attack: 10,
-  moveSpeed: 140,
+  moveCooldown: 1000,
   critRate: 5,
   critDamage: 200,
+  deathSaveRate: 0,
   specialEffect: "無",
 };
 
@@ -120,9 +122,10 @@ function updateHeroStatsList() {
   heroStatsList.innerHTML = `
     <div>破防：${playerStats.pierce}</div>
     <div>攻擊力：${playerStats.attack}</div>
-    <div>移動速度：${playerStats.moveSpeed}</div>
+    <div>移動冷卻：${(playerStats.moveCooldown / 1000).toFixed(1)}秒</div>
     <div>爆擊率：${playerStats.critRate}%</div>
     <div>爆擊傷害：${playerStats.critDamage}%</div>
+    <div>免死率：${playerStats.deathSaveRate}%</div>
     <div>特殊效果：${playerStats.specialEffect}</div>
   `;
 }
@@ -200,12 +203,19 @@ function movePlayer(direction) {
     return;
   }
 
+  const now = performance.now();
+
+  if (now - lastMoveTime < playerStats.moveCooldown) {
+    return;
+  }
+
   const nextLane = Math.max(0, Math.min(2, playerLane + direction));
 
   if (nextLane === playerLane) {
     return;
   }
 
+  lastMoveTime = now;
   isMoving = true;
   hero.classList.add("is-moving");
   playerLane = nextLane;
@@ -217,6 +227,7 @@ function resetGameOver() {
   isKoPlaying = false;
   canPlayerDamage = false;
   isMoving = false;
+  lastMoveTime = -Infinity;
   hero.classList.remove("is-dead");
   hero.classList.remove("is-moving");
   koEffect.classList.remove("is-active");
@@ -258,6 +269,10 @@ function showResult(title, earnedMoney) {
 function gameOver() {
   hero.classList.add("is-dead");
   showResult("失敗", 0);
+}
+
+function tryDeathSave() {
+  return Math.random() * 100 < playerStats.deathSaveRate;
 }
 
 function winBattle() {
@@ -330,6 +345,11 @@ function checkBulletHit() {
   );
 
   if (isHit) {
+    if (tryDeathSave()) {
+      resetBullet();
+      return;
+    }
+
     gameOver();
   }
 }

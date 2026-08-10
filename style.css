@@ -240,6 +240,10 @@ h2 {
   transform: translateY(-60px);
 }
 
+.enemy.is-defeated {
+  opacity: 0;
+}
+
 .bullet {
   left: calc((100% / 3) * var(--bullet-lane) + (100% / 6));
   top: var(--bullet-y);
@@ -281,6 +285,10 @@ h2 {
   opacity: 0.35;
 }
 
+.hero.is-moving {
+  opacity: 0.55;
+}
+
 .result-modal {
   position: absolute;
   inset: 0;
@@ -310,6 +318,32 @@ h2 {
   margin-bottom: 18px;
   font-size: 22px;
   font-weight: 500;
+}
+
+.ko-effect {
+  position: absolute;
+  inset: 0;
+  z-index: 9;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.ko-effect.is-active {
+  display: flex;
+}
+
+.ko-letter {
+  width: 105px;
+  max-width: 32%;
+  display: none;
+  object-fit: contain;
+}
+
+.ko-letter.is-active {
+  display: block;
 }
 
 @media (max-width: 360px) {

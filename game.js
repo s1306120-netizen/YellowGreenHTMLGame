@@ -17,6 +17,9 @@ const resultBackBtn = document.getElementById("resultBackBtn");
 const resultModal = document.getElementById("result");
 const resultTitle = document.getElementById("resultTitle");
 const resultMoneyText = document.getElementById("resultMoneyText");
+const koEffect = document.getElementById("koEffect");
+const koK = document.getElementById("koK");
+const koO = document.getElementById("koO");
 const arena = document.querySelector(".arena");
 const hero = document.getElementById("hero");
 const enemy = document.getElementById("enemy");
@@ -36,6 +39,7 @@ let totalBossCount = 1;
 let battleMultiplier = 1;
 let money = 0;
 let battleReward = 100;
+let pendingMoney = 0;
 let touchStartX = 0;
 let bulletTimer = null;
 let warningTimer = null;
@@ -43,9 +47,14 @@ let bulletEndTimer = null;
 let playerAttackTimer = null;
 let playerAttackDelayTimer = null;
 let playerBulletEndTimer = null;
+let koTimerK = null;
+let koTimerEnd = null;
 let hitAnimation = null;
 let playerHitAnimation = null;
 let isGameOver = false;
+let isKoPlaying = false;
+let canPlayerDamage = false;
+let isMoving = false;
 
 const playerBulletAttack = 10;
 const playerBulletPierce = 0;
@@ -99,6 +108,24 @@ function updateMoneyText() {
   moneyText.textContent = money;
 }
 
+function animateMoneyText(fromMoney, toMoney) {
+  const duration = 700;
+  const startTime = performance.now();
+
+  function update(now) {
+    const progress = Math.min(1, (now - startTime) / duration);
+    const currentMoney = Math.round(fromMoney + (toMoney - fromMoney) * progress);
+
+    moneyText.textContent = currentMoney;
+
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    }
+  }
+
+  requestAnimationFrame(update);
+}
+
 function getBattleReward() {
   const bossCount = Math.max(1, Number(bossCountInput.value));
   const multiplier = Math.max(1, Math.round(Number(multiplierInput.value) * 2) / 2);
@@ -123,13 +150,28 @@ function movePlayer(direction) {
     return;
   }
 
-  playerLane = Math.max(0, Math.min(2, playerLane + direction));
+  const nextLane = Math.max(0, Math.min(2, playerLane + direction));
+
+  if (nextLane === playerLane) {
+    return;
+  }
+
+  isMoving = true;
+  hero.classList.add("is-moving");
+  playerLane = nextLane;
   updateHeroPosition();
 }
 
 function resetGameOver() {
   isGameOver = false;
+  isKoPlaying = false;
+  canPlayerDamage = false;
+  isMoving = false;
   hero.classList.remove("is-dead");
+  hero.classList.remove("is-moving");
+  koEffect.classList.remove("is-active");
+  koK.classList.remove("is-active");
+  koO.classList.remove("is-active");
   resultModal.classList.remove("is-active");
 }
 
@@ -149,6 +191,7 @@ function resetBoss() {
   bossMaxHp = Math.round(firstBoss.hp * battleMultiplier);
   currentBossNumber = 1;
   bossHp = bossMaxHp;
+  enemy.classList.remove("is-defeated");
   enemy.src = `outputs/${currentBossName}.png`;
   updateBossHpText();
   return true;
@@ -168,19 +211,65 @@ function gameOver() {
 }
 
 function winBattle() {
-  money += battleReward;
-  updateMoneyText();
+  pendingMoney = battleReward;
   showResult("勝利", battleReward);
+}
+
+function collectPendingMoney() {
+  if (pendingMoney <= 0) {
+    return;
+  }
+
+  const oldMoney = money;
+  money += pendingMoney;
+  pendingMoney = 0;
+  animateMoneyText(oldMoney, money);
+}
+
+function finishBossDefeat() {
+  koEffect.classList.remove("is-active");
+  koK.classList.remove("is-active");
+  koO.classList.remove("is-active");
+  isKoPlaying = false;
+
+  if (currentBossNumber >= totalBossCount) {
+    winBattle();
+  } else {
+    goToNextBoss();
+    startEnemyActions();
+  }
+}
+
+function playKoEffect() {
+  isKoPlaying = true;
+  stopEnemyActions();
+  resetBullet();
+  resetPlayerBullet();
+  enemy.classList.add("is-defeated");
+  koEffect.classList.add("is-active");
+  koK.classList.add("is-active");
+  koO.classList.remove("is-active");
+
+  koTimerK = setTimeout(() => {
+    koO.classList.add("is-active");
+  }, 280);
+
+  koTimerEnd = setTimeout(finishBossDefeat, 900);
 }
 
 function goToNextBoss() {
   currentBossNumber += 1;
   bossHp = bossMaxHp;
+  enemy.classList.remove("is-defeated");
   enemy.src = `outputs/${currentBossName}.png`;
   updateBossHpText();
 }
 
 function checkBulletHit() {
+  if (isMoving) {
+    return;
+  }
+
   const bulletRect = bullet.getBoundingClientRect();
   const heroRect = hero.getBoundingClientRect();
   const isHit = !(
@@ -209,6 +298,10 @@ function watchBulletHit() {
 }
 
 function damageBoss() {
+  if (!canPlayerDamage || isKoPlaying) {
+    return;
+  }
+
   const damage = Math.abs(playerBulletAttack - Math.abs(currentBossDefense - playerBulletPierce));
 
   bossHp = Math.max(0, bossHp - damage);
@@ -216,11 +309,7 @@ function damageBoss() {
   resetPlayerBullet();
 
   if (bossHp <= 0) {
-    if (currentBossNumber >= totalBossCount) {
-      winBattle();
-    } else {
-      goToNextBoss();
-    }
+    playKoEffect();
   }
 }
 
@@ -273,7 +362,7 @@ function shootBullet() {
 }
 
 function shootPlayerBullet() {
-  if (isGameOver) {
+  if (isGameOver || !canPlayerDamage) {
     return;
   }
 
@@ -294,6 +383,7 @@ function startEnemyActions() {
   enemy.src = `outputs/${currentBossName}.png`;
   bulletTimer = setInterval(shootBullet, 1600);
   playerAttackDelayTimer = setTimeout(() => {
+    canPlayerDamage = true;
     playerAttackTimer = setInterval(shootPlayerBullet, 1000);
   }, 2000);
 }
@@ -305,6 +395,8 @@ function stopEnemyActions() {
   clearInterval(playerAttackTimer);
   clearTimeout(playerAttackDelayTimer);
   clearTimeout(playerBulletEndTimer);
+  clearTimeout(koTimerK);
+  clearTimeout(koTimerEnd);
   cancelAnimationFrame(hitAnimation);
   cancelAnimationFrame(playerHitAnimation);
   bulletTimer = null;
@@ -313,8 +405,11 @@ function stopEnemyActions() {
   playerAttackTimer = null;
   playerAttackDelayTimer = null;
   playerBulletEndTimer = null;
+  koTimerK = null;
+  koTimerEnd = null;
   hitAnimation = null;
   playerHitAnimation = null;
+  canPlayerDamage = false;
   enemy.src = `outputs/${currentBossName}.png`;
 }
 
@@ -353,6 +448,7 @@ resultBackBtn.addEventListener("click", () => {
   resetPlayerBullet();
   resetGameOver();
   showScreen("lobby");
+  collectPendingMoney();
 });
 
 window.addEventListener("keydown", (event) => {
@@ -382,6 +478,15 @@ arena.addEventListener("touchend", (event) => {
 
   movePlayer(distance > 0 ? 1 : -1);
 }, { passive: true });
+
+hero.addEventListener("transitionend", (event) => {
+  if (event.propertyName !== "left") {
+    return;
+  }
+
+  isMoving = false;
+  hero.classList.remove("is-moving");
+});
 
 updateHeroPosition();
 resetBullet();

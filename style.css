@@ -68,17 +68,63 @@ h1 {
   font-weight: 500;
 }
 
+.bag-button {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+}
+
 .money-icon {
   width: 28px;
   height: 28px;
   object-fit: contain;
 }
 
+.lobby-hero-wrap {
+  position: relative;
+  width: 220px;
+  max-width: 80%;
+  display: grid;
+  place-items: center;
+}
+
 .lobby-hero {
   width: 150px;
-  max-width: 60%;
+  max-width: 68%;
   user-select: none;
   -webkit-user-drag: none;
+}
+
+.lobby-equipment {
+  position: absolute;
+  width: 58px;
+  max-width: 28%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.equip-weapon {
+  top: 0;
+  left: 0;
+}
+
+.equip-armor {
+  top: 0;
+  right: 0;
+}
+
+.equip-shoes {
+  right: 0;
+  bottom: 0;
+}
+
+.equip-accessory {
+  left: 0;
+  bottom: 0;
 }
 
 .difficulty-info {

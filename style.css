@@ -272,6 +272,20 @@ h2 {
   font-size: 18px;
 }
 
+.save-editor-box {
+  max-height: 86vh;
+}
+
+.save-json-input {
+  width: 100%;
+  min-height: 180px;
+  padding: 8px;
+  border: 2px solid rgba(111, 91, 55, 0.55);
+  border-radius: 8px;
+  font: 13px ui-monospace, SFMono-Regular, Consolas, monospace;
+  resize: vertical;
+}
+
 .primary-button,
 .small-button {
   border: 0;

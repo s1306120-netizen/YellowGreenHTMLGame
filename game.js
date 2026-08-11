@@ -23,6 +23,11 @@ const itemModalName = document.getElementById("itemModalName");
 const itemModalInfo = document.getElementById("itemModalInfo");
 const itemModalActionBtn = document.getElementById("itemModalActionBtn");
 const closeItemModalBtn = document.getElementById("closeItemModalBtn");
+const saveEditorModal = document.getElementById("saveEditorModal");
+const saveMoneyInput = document.getElementById("saveMoneyInput");
+const saveJsonInput = document.getElementById("saveJsonInput");
+const applySaveEditorBtn = document.getElementById("applySaveEditorBtn");
+const closeSaveEditorBtn = document.getElementById("closeSaveEditorBtn");
 const difficultySelect = document.getElementById("difficultySelect");
 const bossCountInput = document.getElementById("bossCountInput");
 const multiplierInput = document.getElementById("multiplierInput");
@@ -80,6 +85,8 @@ let selectedItemMode = "equip";
 let openingBagIndex = 0;
 let openingBagClicks = 0;
 let touchStartX = 0;
+let isKey6Down = false;
+let isKey7Down = false;
 let bulletTimer = null;
 let warningTimer = null;
 let bulletEndTimer = null;
@@ -102,6 +109,8 @@ const rewardByDifficulty = {
   "普通": 500,
   "困難": 1000,
 };
+
+const saveKey = "huangye-ludou-save-v1";
 
 const bossData = [
   { name: "小豬", difficulty: "簡單", hp: 100, defense: 0 },
@@ -198,8 +207,87 @@ function getRandomEquipment(rarity) {
   return getRandomItem(rarityItems.length > 0 ? rarityItems : equipmentData);
 }
 
+function findEquipmentByName(name) {
+  return equipmentData.find((item) => item.name === name) || null;
+}
+
+function saveGame() {
+  const saveData = {
+    money,
+    inventory: inventory.map((item) => item.name),
+    equippedItems: Object.fromEntries(
+      Object.entries(equippedItems).map(([type, item]) => [type, item ? item.name : null])
+    ),
+  };
+
+  localStorage.setItem(saveKey, JSON.stringify(saveData));
+}
+
+function getCurrentSaveData() {
+  const rawSave = localStorage.getItem(saveKey);
+
+  if (!rawSave) {
+    saveGame();
+    return JSON.parse(localStorage.getItem(saveKey));
+  }
+
+  return JSON.parse(rawSave);
+}
+
+function loadGame() {
+  const rawSave = localStorage.getItem(saveKey);
+
+  if (!rawSave) {
+    return;
+  }
+
+  try {
+    const saveData = JSON.parse(rawSave);
+
+    money = Number(saveData.money) || 0;
+    inventory = (saveData.inventory || [])
+      .map(findEquipmentByName)
+      .filter(Boolean);
+
+    Object.keys(equippedItems).forEach((type) => {
+      equippedItems[type] = findEquipmentByName(saveData.equippedItems?.[type]);
+    });
+
+    recalculatePlayerStats();
+    updateEquippedImages();
+  } catch (error) {
+    console.warn("讀取存檔失敗", error);
+  }
+}
+
+function openSaveEditor() {
+  saveGame();
+  const saveData = getCurrentSaveData();
+
+  saveMoneyInput.value = saveData.money || 0;
+  saveJsonInput.value = JSON.stringify(saveData, null, 2);
+  saveEditorModal.classList.add("is-active");
+}
+
+function applySaveEditor() {
+  try {
+    const saveData = JSON.parse(saveJsonInput.value);
+
+    saveData.money = Math.max(0, Number(saveMoneyInput.value) || 0);
+    localStorage.setItem(saveKey, JSON.stringify(saveData));
+    loadGame();
+    updateMoneyText();
+    updateInventoryList();
+    updateHeroStatsList();
+    saveEditorModal.classList.remove("is-active");
+  } catch (error) {
+    alert("JSON格式錯了");
+  }
+}
+
 function addEquipmentToInventory(item) {
   inventory.push({ ...item });
+  saveGame();
 }
 
 function applyEquipmentEffect(item) {
@@ -263,6 +351,7 @@ function equipItem(item) {
   recalculatePlayerStats();
   updateEquippedImages();
   updateHeroStatsList();
+  saveGame();
 }
 
 function unequipItem(type) {
@@ -270,6 +359,7 @@ function unequipItem(type) {
   recalculatePlayerStats();
   updateEquippedImages();
   updateHeroStatsList();
+  saveGame();
 }
 
 function showItemModal(item, mode) {
@@ -696,6 +786,7 @@ function collectPendingMoney() {
   const oldMoney = money;
   money += pendingMoney;
   pendingMoney = 0;
+  saveGame();
   animateMoneyText(oldMoney, money);
 }
 
@@ -930,6 +1021,12 @@ closeItemModalBtn.addEventListener("click", () => {
   itemModal.classList.remove("is-active");
 });
 
+applySaveEditorBtn.addEventListener("click", applySaveEditor);
+
+closeSaveEditorBtn.addEventListener("click", () => {
+  saveEditorModal.classList.remove("is-active");
+});
+
 [
   ["武器", equippedWeapon],
   ["護甲", equippedArmor],
@@ -970,6 +1067,18 @@ resultBackBtn.addEventListener("click", () => {
 bagOpeningScreen.addEventListener("click", clickOpenBag);
 
 window.addEventListener("keydown", (event) => {
+  if (event.key === "6") {
+    isKey6Down = true;
+  }
+
+  if (event.key === "7") {
+    isKey7Down = true;
+  }
+
+  if (isKey6Down && isKey7Down) {
+    openSaveEditor();
+  }
+
   if (!gameScreen.classList.contains("screen-active")) {
     return;
   }
@@ -980,6 +1089,16 @@ window.addEventListener("keydown", (event) => {
 
   if (event.key === "ArrowRight") {
     movePlayer(1);
+  }
+});
+
+window.addEventListener("keyup", (event) => {
+  if (event.key === "6") {
+    isKey6Down = false;
+  }
+
+  if (event.key === "7") {
+    isKey7Down = false;
   }
 });
 
@@ -1006,6 +1125,7 @@ hero.addEventListener("transitionend", (event) => {
   hero.classList.remove("is-moving");
 });
 
+loadGame();
 updateHeroPosition();
 resetBullet();
 resetPlayerBullet();

@@ -9,17 +9,19 @@
 <body>
   <main class="app">
     <section id="lobby" class="screen screen-active">
-      <img class="bag-button" src="outputs/包包圖.png" alt="包包">
+      <button id="bagButton" class="bag-button" type="button">
+        <img src="outputs/包包圖.png" alt="包包">
+      </button>
       <div class="money-display">
         <img class="money-icon" src="outputs/錢.png" alt="錢">
         <span id="moneyText">0</span>
       </div>
       <h1>黃葉綠豆</h1>
       <div class="lobby-hero-wrap">
-        <img class="lobby-equipment equip-weapon" src="outputs/空武器圖.png" alt="空武器">
-        <img class="lobby-equipment equip-armor" src="outputs/空護甲圖.png" alt="空護甲">
-        <img class="lobby-equipment equip-shoes" src="outputs/空靴子圖.png" alt="空鞋子">
-        <img class="lobby-equipment equip-accessory" src="outputs/空飾品圖.png" alt="空飾品">
+        <img id="equippedWeapon" class="lobby-equipment equip-weapon" src="outputs/空武器圖.png" alt="空武器">
+        <img id="equippedArmor" class="lobby-equipment equip-armor" src="outputs/空護甲圖.png" alt="空護甲">
+        <img id="equippedShoes" class="lobby-equipment equip-shoes" src="outputs/空靴子圖.png" alt="空鞋子">
+        <img id="equippedAccessory" class="lobby-equipment equip-accessory" src="outputs/空飾品圖.png" alt="空飾品">
         <button id="heroInfoBtn" class="hero-info-button" type="button">
           <img class="lobby-hero" src="outputs/愛的家.png?v=2" alt="愛的家">
         </button>
@@ -66,6 +68,24 @@
           <button id="closeHeroInfoBtn" class="small-button" type="button">關閉</button>
         </div>
       </div>
+
+      <div id="inventoryModal" class="settings-modal">
+        <div class="settings-box inventory-box">
+          <h2>包包</h2>
+          <div id="inventoryList" class="inventory-list"></div>
+          <button id="closeInventoryBtn" class="small-button" type="button">關閉</button>
+        </div>
+      </div>
+
+      <div id="itemModal" class="settings-modal">
+        <div class="settings-box item-box">
+          <img id="itemModalImage" class="item-modal-image" src="outputs/空武器圖.png" alt="">
+          <h2 id="itemModalName">裝備</h2>
+          <div id="itemModalInfo" class="item-modal-info"></div>
+          <button id="itemModalActionBtn" class="small-button" type="button">穿上</button>
+          <button id="closeItemModalBtn" class="small-button" type="button">關閉</button>
+        </div>
+      </div>
     </section>
 
     <section id="game" class="screen">
@@ -76,6 +96,7 @@
           <div>HP:100/100</div>
         </div>
         <div id="damageText" class="damage-text"></div>
+        <div id="bagDropText" class="bag-drop-text">獲得袋子</div>
         <img id="enemy" class="enemy" src="outputs/小豬.png" alt="小豬">
 
         <div class="arena" aria-label="戰鬥場地">
@@ -95,6 +116,8 @@
           <div class="result-box">
             <h2 id="resultTitle">失敗</h2>
             <div id="resultMoneyText" class="result-money-text">獲得金錢：0</div>
+            <div id="resultBagText" class="result-bag-text">獲得袋子：0</div>
+            <div id="resultBagList" class="result-bag-list"></div>
             <button id="resultBackBtn" class="small-button" type="button">回大廳</button>
           </div>
         </div>
@@ -103,6 +126,16 @@
           <img id="koK" class="ko-letter" src="outputs/K.png" alt="K">
           <img id="koO" class="ko-letter" src="outputs/O.png" alt="O">
         </div>
+      </div>
+    </section>
+
+    <section id="bagOpening" class="screen">
+      <div class="bag-opening-screen">
+        <button id="openBagBtn" class="open-bag-button" type="button">
+          <img id="openBagImage" src="outputs/普通袋子.png" alt="普通袋子">
+        </button>
+        <div id="openBagReward" class="open-bag-reward"></div>
+        <div id="openBagProgress" class="open-bag-progress">袋子 1/1　點擊 0/4</div>
       </div>
     </section>
   </main>

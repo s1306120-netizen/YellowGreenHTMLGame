@@ -8,6 +8,7 @@ body {
   font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #243126;
   background: #f1e7cf;
+  overflow-x: hidden;
 }
 
 button {
@@ -865,5 +866,49 @@ h2 {
 
   h1 {
     font-size: 38px;
+  }
+}
+
+@media (max-width: 520px) {
+  body.is-battle {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .app {
+    min-height: 100dvh;
+    padding: 6px 12px;
+  }
+
+  body.is-battle .app {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  #lobby {
+    min-height: calc(100dvh - 12px);
+  }
+
+  .bag-button,
+  .blacksmith-button {
+    top: -28px;
+    width: 68px;
+    height: 68px;
+  }
+
+  .blacksmith-button {
+    left: 72px;
+  }
+
+  #game.screen-active {
+    align-items: stretch;
+    height: calc(100dvh - 12px);
+    overflow: hidden;
+  }
+
+  .battle-layout {
+    height: calc(100dvh - 12px);
+    max-height: calc(100dvh - 12px);
+    overflow: hidden;
   }
 }

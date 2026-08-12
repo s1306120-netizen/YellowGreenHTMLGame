@@ -202,6 +202,7 @@ const enemyImages = [
 ];
 
 function showScreen(screen) {
+  document.body.classList.toggle("is-battle", screen === "game");
   lobbyScreen.classList.toggle("screen-active", screen === "lobby");
   gameScreen.classList.toggle("screen-active", screen === "game");
   bagOpeningScreen.classList.toggle("screen-active", screen === "bagOpening");

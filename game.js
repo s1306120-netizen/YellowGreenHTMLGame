@@ -198,6 +198,37 @@ const playerStats = {
 
 const basePlayerStats = { ...playerStats };
 
+const lobbyMusic = new Audio("outputs/大廳音樂.mp3");
+const battleMusic = new Audio("outputs/戰鬥音樂.mp3");
+lobbyMusic.loop = true;
+battleMusic.loop = true;
+lobbyMusic.volume = 0.65;
+battleMusic.volume = 0.65;
+
+function playMusic(music) {
+  music.play().catch(() => {});
+}
+
+function switchMusic(screen) {
+  if (screen === "game") {
+    lobbyMusic.pause();
+    battleMusic.currentTime = 0;
+    playMusic(battleMusic);
+    return;
+  }
+
+  battleMusic.pause();
+  if (screen === "lobby") {
+    playMusic(lobbyMusic);
+  }
+}
+
+document.addEventListener("pointerdown", () => {
+  if (lobbyScreen.classList.contains("screen-active")) {
+    playMusic(lobbyMusic);
+  }
+}, { once: true });
+
 const enemyImages = [
   "outputs/小豬(準備攻擊左).png?v=2",
   "outputs/小豬(準備攻擊中).png?v=3",
@@ -210,6 +241,7 @@ function showScreen(screen) {
   gameScreen.classList.toggle("screen-active", screen === "game");
   bagOpeningScreen.classList.toggle("screen-active", screen === "bagOpening");
   blacksmithScreen.classList.toggle("screen-active", screen === "blacksmith");
+  switchMusic(screen);
 }
 
 function updateHeroPosition() {

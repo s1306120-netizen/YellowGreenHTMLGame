@@ -384,9 +384,49 @@ function addEquipmentToInventory(item) {
   saveGame();
 }
 
+function getEffectAmount(item) {
+  return Number(item.effect.match(/\d+(\.\d+)?/)?.[0] || 0);
+}
+
+function getNextFlatUpgradeAmount(currentAmount) {
+  return Math.max(1, Math.floor((currentAmount - 10) / 5) + 1);
+}
+
+function getScaledEffectAmount(item) {
+  return getEffectAmount(item);
+}
+
+function getNextEffectUpgradeAmount(item) {
+  const currentAmount = getScaledEffectAmount(item);
+
+  if (item.effect.includes("移動冷卻")) {
+    return 0.05;
+  }
+
+  return getNextFlatUpgradeAmount(currentAmount);
+}
+
+function formatEffectAmount(amount) {
+  return Number.isInteger(amount) ? amount : Number(amount.toFixed(2));
+}
+
+function getScaledEffectText(item) {
+  const amount = formatEffectAmount(getScaledEffectAmount(item));
+
+  return item.effect.replace(/\d+(\.\d+)?/, amount);
+}
+
+function getUpgradedEffectText(item) {
+  const amount = getEffectAmount(item);
+  const nextAmount = item.effect.includes("移動冷卻")
+    ? amount + getNextEffectUpgradeAmount(item)
+    : amount + getNextFlatUpgradeAmount(amount);
+
+  return item.effect.replace(/\d+(\.\d+)?/, formatEffectAmount(nextAmount));
+}
+
 function applyEquipmentEffect(item) {
-  const amount = Number(item.effect.match(/\d+(\.\d+)?/)?.[0] || 0);
-  const upgradeLevel = Math.max(0, (Number(item.level) || 1) - 1);
+  const amount = getScaledEffectAmount(item);
 
   if (item.effect.includes("攻擊力")) {
     playerStats.attack += amount;
@@ -410,10 +450,6 @@ function applyEquipmentEffect(item) {
 
   if (item.effect.includes("免死")) {
     playerStats.deathSaveRate += amount;
-  }
-
-  if (upgradeLevel > 0) {
-    applyUpgradeBonus(item, upgradeLevel);
   }
 
   playerStats.moveCooldown = Math.max(100, playerStats.moveCooldown);
@@ -519,7 +555,7 @@ function showItemModal(item, mode) {
     <div>種類：${item.type}</div>
     <div>稀有度：${item.rarity}</div>
     <div>等級：${item.level || 1}</div>
-    <div>效果：${item.effect}</div>
+    <div>效果：${getScaledEffectText(item)}</div>
   `;
   itemModalActionBtn.textContent = mode === "unequip" ? "卸下" : "穿上";
   itemModal.classList.add("is-active");
@@ -540,43 +576,28 @@ function getUpgradeChance(item) {
 }
 
 function getUpgradeBonusInfo(item) {
-  const rarityBonus = {
-    "普通": { "武器": 1, "護甲": 0.5, "鞋子": -50 },
-    "稀有": { "武器": 3, "護甲": 1, "鞋子": -50 },
-    "史詩": { "武器": 5, "護甲": 2, "鞋子": -50 },
-    "傳奇": { "武器": 10, "護甲": 3, "鞋子": -50 },
-  };
-
-  if (item.type === "武器") {
-    return { stat: "攻擊力", value: rarityBonus[item.rarity]?.[item.type] || 0 };
-  }
-
-  if (item.type === "護甲") {
-    return { stat: "免死率", value: rarityBonus[item.rarity]?.[item.type] || 0 };
-  }
-
-  if (item.type === "鞋子") {
-    return { stat: "移動冷卻", value: rarityBonus[item.rarity]?.[item.type] || 0, unit: "ms" };
-  }
-
   if (item.effect.includes("攻擊力")) {
-    return { stat: "攻擊力", value: 1 };
+    return { stat: "攻擊力", value: getNextEffectUpgradeAmount(item) };
   }
 
   if (item.effect.includes("破防")) {
-    return { stat: "破防", value: 1 };
+    return { stat: "破防", value: getNextEffectUpgradeAmount(item) };
   }
 
   if (item.effect.includes("移動冷卻")) {
-    return { stat: "移動冷卻", value: -50, unit: "ms" };
+    return { stat: "移動冷卻", value: -getNextEffectUpgradeAmount(item), unit: "秒" };
   }
 
   if (item.effect.includes("爆擊率")) {
-    return { stat: "爆擊率", value: 1, unit: "%" };
+    return { stat: "爆擊率", value: getNextEffectUpgradeAmount(item), unit: "%" };
   }
 
   if (item.effect.includes("爆擊傷害")) {
-    return { stat: "爆擊傷害", value: 1, unit: "%" };
+    return { stat: "爆擊傷害", value: getNextEffectUpgradeAmount(item), unit: "%" };
+  }
+
+  if (item.effect.includes("免死")) {
+    return { stat: "免死率", value: getNextEffectUpgradeAmount(item), unit: "%" };
   }
 
   return { stat: "特殊效果", value: 0 };
@@ -594,13 +615,14 @@ function updateUpgradeDetailText(item) {
 
   const bonus = getUpgradeBonusInfo(item);
   const sign = bonus.value >= 0 ? "+" : "";
+  const bonusValue = formatEffectAmount(bonus.value);
 
   upgradeDetailText.innerHTML = `
     <div>${bonus.stat}</div>
     <div>種類：${item.type}</div>
     <div>稀有度：${item.rarity}</div>
     <div>等級：${item.level || 1} <span class="upgrade-plus">+1</span></div>
-    <div>效果：${item.effect}<span class="upgrade-plus">${sign}${bonus.value}${bonus.unit || ""}</span></div>
+    <div>效果：${getScaledEffectText(item)}<span class="upgrade-plus">${sign}${bonusValue}${bonus.unit || ""}</span></div>
   `;
 }
 
@@ -873,6 +895,7 @@ function upgradeSelectedItem() {
     upgradeBlacksmithInsideImage.classList.remove("is-forging");
 
     if (Math.random() * 100 < getUpgradeChance(item)) {
+      item.effect = getUpgradedEffectText(item);
       item.level = (item.level || 1) + 1;
       upgradedPendingItem = item;
       upgradeSlot = null;

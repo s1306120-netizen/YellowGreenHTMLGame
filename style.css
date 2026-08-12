@@ -686,6 +686,8 @@ h2 {
 .enemy {
   align-self: start;
   justify-self: center;
+  position: relative;
+  z-index: 3;
   width: 650px;
   max-width:150%;
   max-height: 150%;

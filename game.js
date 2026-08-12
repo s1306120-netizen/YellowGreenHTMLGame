@@ -85,8 +85,10 @@ const upgradeInputSlot = document.getElementById("upgradeInputSlot");
 const upgradeInputImage = document.getElementById("upgradeInputImage");
 const upgradeResultSlot = document.getElementById("upgradeResultSlot");
 const upgradeResultImage = document.getElementById("upgradeResultImage");
+const upgradeDetailText = document.getElementById("upgradeDetailText");
 const upgradeBtn = document.getElementById("upgradeBtn");
 const upgradeResultText = document.getElementById("upgradeResultText");
+const upgradeMoneyText = document.getElementById("upgradeMoneyText");
 const upgradeBackBtn = document.getElementById("upgradeBackBtn");
 
 let playerLane = 1;
@@ -125,6 +127,7 @@ let touchStartX = 0;
 let isKey6Down = false;
 let isKey7Down = false;
 let bulletTimer = null;
+let enemyAttackDelayTimer = null;
 let warningTimer = null;
 let bulletEndTimer = null;
 let playerAttackTimer = null;
@@ -486,6 +489,26 @@ function unequipItem(type) {
   saveGame();
 }
 
+function isSameEquipmentItem(a, b) {
+  return a && b
+    && a.name === b.name
+    && a.type === b.type
+    && a.rarity === b.rarity
+    && a.effect === b.effect
+    && a.image === b.image
+    && (a.level || 1) === (b.level || 1);
+}
+
+function removeDroppedEquippedItemsFromInventory(droppedItems) {
+  droppedItems.forEach((droppedItem) => {
+    const itemIndex = inventory.findIndex((item) => isSameEquipmentItem(item, droppedItem));
+
+    if (itemIndex >= 0) {
+      inventory.splice(itemIndex, 1);
+    }
+  });
+}
+
 function showItemModal(item, mode) {
   selectedItem = item;
   selectedItemMode = mode;
@@ -516,17 +539,85 @@ function getUpgradeChance(item) {
   return getUpgradeRule(level).chance;
 }
 
+function getUpgradeBonusInfo(item) {
+  const rarityBonus = {
+    "普通": { "武器": 1, "護甲": 0.5, "鞋子": -50 },
+    "稀有": { "武器": 3, "護甲": 1, "鞋子": -50 },
+    "史詩": { "武器": 5, "護甲": 2, "鞋子": -50 },
+    "傳奇": { "武器": 10, "護甲": 3, "鞋子": -50 },
+  };
+
+  if (item.type === "武器") {
+    return { stat: "攻擊力", value: rarityBonus[item.rarity]?.[item.type] || 0 };
+  }
+
+  if (item.type === "護甲") {
+    return { stat: "免死率", value: rarityBonus[item.rarity]?.[item.type] || 0 };
+  }
+
+  if (item.type === "鞋子") {
+    return { stat: "移動冷卻", value: rarityBonus[item.rarity]?.[item.type] || 0, unit: "ms" };
+  }
+
+  if (item.effect.includes("攻擊力")) {
+    return { stat: "攻擊力", value: 1 };
+  }
+
+  if (item.effect.includes("破防")) {
+    return { stat: "破防", value: 1 };
+  }
+
+  if (item.effect.includes("移動冷卻")) {
+    return { stat: "移動冷卻", value: -50, unit: "ms" };
+  }
+
+  if (item.effect.includes("爆擊率")) {
+    return { stat: "爆擊率", value: 1, unit: "%" };
+  }
+
+  if (item.effect.includes("爆擊傷害")) {
+    return { stat: "爆擊傷害", value: 1, unit: "%" };
+  }
+
+  return { stat: "特殊效果", value: 0 };
+}
+
+function updateUpgradeDetailText(item) {
+  if (!upgradeDetailText) {
+    return;
+  }
+
+  if (!item) {
+    upgradeDetailText.textContent = "選擇裝備後顯示升級詳細狀態";
+    return;
+  }
+
+  const bonus = getUpgradeBonusInfo(item);
+  const sign = bonus.value >= 0 ? "+" : "";
+
+  upgradeDetailText.innerHTML = `
+    <div>${bonus.stat}</div>
+    <div>種類：${item.type}</div>
+    <div>稀有度：${item.rarity}</div>
+    <div>等級：${item.level || 1} <span class="upgrade-plus">+1</span></div>
+    <div>效果：${item.effect}<span class="upgrade-plus">${sign}${bonus.value}${bonus.unit || ""}</span></div>
+  `;
+}
+
 function updateUpgradeUi() {
   if (upgradedPendingItem) {
     upgradeBtn.innerHTML = "確定";
+    updateUpgradeDetailText(upgradedPendingItem);
     return;
   }
 
   if (!upgradeSlot) {
     upgradeBtn.innerHTML = "升級<br>花費:<br>成功機率:";
+    updateUpgradeDetailText(null);
     return;
   }
 
+  updateUpgradeDetailText(upgradeSlot.item);
   upgradeBtn.innerHTML = `升級<br>花費:${getUpgradeCost(upgradeSlot.item)}<br>成功機率:${getUpgradeChance(upgradeSlot.item)}%`;
 }
 
@@ -795,6 +886,7 @@ function upgradeSelectedItem() {
 
     recalculatePlayerStats();
     updateEquippedImages();
+    updateHeroStatsList();
     updateUpgradeUi();
     saveGame();
     isForging = false;
@@ -977,6 +1069,10 @@ function updateInventoryList() {
 
 function updateMoneyText() {
   moneyText.textContent = money;
+
+  if (upgradeMoneyText) {
+    upgradeMoneyText.textContent = `目前金錢：${money}`;
+  }
 }
 
 function calculatePlayerDamage() {
@@ -1124,11 +1220,15 @@ function showResult(title, earnedMoney) {
 function gameOver() {
   hero.classList.add("is-dead");
   battleBags = [];
+  const droppedItems = Object.values(equippedItems).filter(Boolean);
+
+  removeDroppedEquippedItemsFromInventory(droppedItems);
   Object.keys(equippedItems).forEach((type) => {
     equippedItems[type] = null;
   });
   recalculatePlayerStats();
   updateEquippedImages();
+  updateHeroStatsList();
   saveGame();
   showResult("失敗", 0);
 }
@@ -1435,7 +1535,10 @@ function startEnemyActions() {
   stopEnemyActions();
   resetBullet();
   enemy.src = `outputs/${currentBossName}.png`;
-  bulletTimer = setInterval(shootBullet, 1600);
+  enemyAttackDelayTimer = setTimeout(() => {
+    shootBullet();
+    bulletTimer = setInterval(shootBullet, 1600);
+  }, 1000);
   playerAttackDelayTimer = setTimeout(() => {
     canPlayerDamage = true;
     playerAttackTimer = setInterval(shootPlayerBullet, 1000);
@@ -1443,6 +1546,7 @@ function startEnemyActions() {
 }
 
 function stopEnemyActions() {
+  clearTimeout(enemyAttackDelayTimer);
   clearInterval(bulletTimer);
   clearTimeout(warningTimer);
   clearTimeout(bulletEndTimer);
@@ -1649,6 +1753,12 @@ window.addEventListener("keyup", (event) => {
     isKey7Down = false;
   }
 });
+
+document.addEventListener("touchmove", (event) => {
+  if (document.body.classList.contains("is-battle")) {
+    event.preventDefault();
+  }
+}, { passive: false });
 
 arena.addEventListener("touchstart", (event) => {
   touchStartX = event.changedTouches[0].clientX;

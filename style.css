@@ -9,6 +9,8 @@ body {
   color: #243126;
   background: #f1e7cf;
   overflow-x: hidden;
+  overscroll-behavior: none;
+  touch-action: manipulation;
 }
 
 button {
@@ -405,6 +407,13 @@ h2 {
   color: #b51616;
 }
 
+.blacksmith-money-text {
+  color: #243126;
+  font-size: 18px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .blacksmith-inside {
   width: min(100%, 360px);
   max-height: 220px;
@@ -448,10 +457,33 @@ h2 {
 
 .upgrade-slots {
   display: grid;
-  grid-template-columns: 82px 90px 82px;
+  grid-template-columns: 82px 140px 82px;
   align-items: center;
   justify-content: center;
   gap: 10px;
+}
+
+.upgrade-detail-wrap {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+}
+
+.upgrade-detail-text {
+  width: 140px;
+  min-height: 78px;
+  padding: 5px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.62);
+  color: #243126;
+  font-size: 13px;
+  line-height: 1.35;
+  text-align: left;
+}
+
+.upgrade-plus {
+  color: #218236;
+  font-weight: 800;
 }
 
 .upgrade-arrow {
@@ -873,6 +905,9 @@ h2 {
   body.is-battle {
     height: 100dvh;
     overflow: hidden;
+    position: fixed;
+    width: 100%;
+    touch-action: none;
   }
 
   .app {
@@ -891,7 +926,7 @@ h2 {
 
   .bag-button,
   .blacksmith-button {
-    top: -28px;
+    top: 6px;
     width: 68px;
     height: 68px;
   }
@@ -909,6 +944,25 @@ h2 {
   .battle-layout {
     height: calc(100dvh - 12px);
     max-height: calc(100dvh - 12px);
+    grid-template-rows: 28% 62% 10%;
     overflow: hidden;
+  }
+
+  .boss-hp-text {
+    top: 6px;
+  }
+
+  .enemy {
+    transform: translateY(-28px);
+  }
+
+  .upgrade-slots {
+    grid-template-columns: 76px 126px 76px;
+    gap: 6px;
+  }
+
+  .upgrade-detail-text {
+    width: 126px;
+    font-size: 12px;
   }
 }

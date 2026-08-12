@@ -47,6 +47,7 @@ const resultBackBtn = document.getElementById("resultBackBtn");
 const resultModal = document.getElementById("result");
 const resultTitle = document.getElementById("resultTitle");
 const resultMoneyText = document.getElementById("resultMoneyText");
+const deathDropText = document.getElementById("deathDropText");
 const resultBagText = document.getElementById("resultBagText");
 const resultBagList = document.getElementById("resultBagList");
 const koEffect = document.getElementById("koEffect");
@@ -184,7 +185,7 @@ const equipmentData = [
 
 const playerStats = {
   pierce: 0,
-  attack: 100,
+  attack: 10,
   moveCooldown: 1000,
   critRate: 5,
   critDamage: 200,
@@ -1114,6 +1115,7 @@ function showResult(title, earnedMoney) {
   stopEnemyActions();
   resultTitle.textContent = title;
   resultMoneyText.textContent = `獲得金錢：${earnedMoney}`;
+  deathDropText.textContent = title === "失敗" ? "身上裝備已掉落" : "";
   updateResultBags();
   resultModal.classList.add("is-active");
 }
@@ -1121,6 +1123,12 @@ function showResult(title, earnedMoney) {
 function gameOver() {
   hero.classList.add("is-dead");
   battleBags = [];
+  Object.keys(equippedItems).forEach((type) => {
+    equippedItems[type] = null;
+  });
+  recalculatePlayerStats();
+  updateEquippedImages();
+  saveGame();
   showResult("失敗", 0);
 }
 

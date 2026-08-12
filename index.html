@@ -12,6 +12,9 @@
       <button id="bagButton" class="bag-button" type="button">
         <img src="outputs/包包圖.png" alt="包包">
       </button>
+      <button id="blacksmithButton" class="blacksmith-button" type="button">
+        <img src="outputs/鐵匠鋪圖.png" alt="鐵匠鋪">
+      </button>
       <div class="money-display">
         <img class="money-icon" src="outputs/錢.png" alt="錢">
         <span id="moneyText">0</span>
@@ -19,9 +22,13 @@
       <h1>黃葉綠豆</h1>
       <div class="lobby-hero-wrap">
         <img id="equippedWeapon" class="lobby-equipment equip-weapon" src="outputs/空武器圖.png" alt="空武器">
+        <span id="equippedWeaponLevel" class="lobby-equipment-level equip-weapon-level"></span>
         <img id="equippedArmor" class="lobby-equipment equip-armor" src="outputs/空護甲圖.png" alt="空護甲">
+        <span id="equippedArmorLevel" class="lobby-equipment-level equip-armor-level"></span>
         <img id="equippedShoes" class="lobby-equipment equip-shoes" src="outputs/空靴子圖.png" alt="空鞋子">
+        <span id="equippedShoesLevel" class="lobby-equipment-level equip-shoes-level"></span>
         <img id="equippedAccessory" class="lobby-equipment equip-accessory" src="outputs/空飾品圖.png" alt="空飾品">
+        <span id="equippedAccessoryLevel" class="lobby-equipment-level equip-accessory-level"></span>
         <button id="heroInfoBtn" class="hero-info-button" type="button">
           <img class="lobby-hero" src="outputs/愛的家.png?v=2" alt="愛的家">
         </button>
@@ -97,6 +104,66 @@
           <textarea id="saveJsonInput" class="save-json-input" spellcheck="false"></textarea>
           <button id="applySaveEditorBtn" class="small-button" type="button">套用</button>
           <button id="closeSaveEditorBtn" class="small-button" type="button">關閉</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="blacksmith" class="screen">
+      <div class="blacksmith-screen">
+        <div id="blacksmithModeSelect" class="blacksmith-mode-select">
+          <button id="openUpgradeModeBtn" class="primary-button" type="button">升級</button>
+          <button id="openComposeModeBtn" class="primary-button" type="button">合成</button>
+        </div>
+
+        <div id="blacksmithComposePanel" class="blacksmith-panel">
+          <div class="blacksmith-title">
+            <div>合成鐵匠鋪</div>
+            <span>三個「同部位 + 同稀有度」可合成</span>
+            <span class="blacksmith-success-text">成功將獲得提升稀有度同部位之隨機物品</span>
+            <span class="blacksmith-fail-text">失敗將獲得同稀有度同部位之隨機物品</span>
+            <span class="blacksmith-cost-text">#每次合成花費500塊</span>
+            <span class="blacksmith-cost-text">#不論成功或失敗新武器等級將會歸零</span>
+          </div>
+          <img id="blacksmithInsideImage" class="blacksmith-inside" src="outputs/鐵匠鋪內部圖.png" alt="鐵匠鋪內部">
+          <button id="blacksmithResultSlot" class="forge-slot forge-result-slot" type="button">
+            <img id="blacksmithResultImage" src="outputs/空裝備格子圖.png" alt="合成結果">
+          </button>
+          <img class="forge-arrow" src="outputs/鐵匠鋪箭頭圖.png" alt="合成箭頭">
+          <div class="forge-input-slots">
+            <button class="forge-slot" data-slot="0" type="button"><img src="outputs/空裝備格子圖.png" alt="材料1"></button>
+            <button class="forge-slot" data-slot="1" type="button"><img src="outputs/空裝備格子圖.png" alt="材料2"></button>
+            <button class="forge-slot" data-slot="2" type="button"><img src="outputs/空裝備格子圖.png" alt="材料3"></button>
+          </div>
+          <button id="synthesizeBtn" class="primary-button" type="button">合成</button>
+          <div id="blacksmithResult" class="blacksmith-result"></div>
+          <button id="blacksmithBackBtn" class="small-button" type="button">回大廳</button>
+        </div>
+
+        <div id="blacksmithUpgradePanel" class="blacksmith-panel">
+          <div class="blacksmith-title">
+            <div>升級鐵匠鋪</div>
+          </div>
+          <img id="upgradeBlacksmithInsideImage" class="blacksmith-inside" src="outputs/鐵匠鋪內部圖.png" alt="鐵匠鋪內部">
+          <div class="upgrade-slots">
+            <button id="upgradeInputSlot" class="forge-slot" type="button">
+              <img id="upgradeInputImage" src="outputs/空裝備格子圖.png" alt="升級材料">
+            </button>
+            <img class="upgrade-arrow" src="outputs/升級箭頭圖.png" alt="升級箭頭">
+            <button id="upgradeResultSlot" class="forge-slot" type="button">
+              <img id="upgradeResultImage" src="outputs/空裝備格子圖.png" alt="升級結果">
+            </button>
+          </div>
+          <button id="upgradeBtn" class="primary-button" type="button">升級<br>花費:</button>
+          <div id="upgradeResultText" class="blacksmith-result"></div>
+          <button id="upgradeBackBtn" class="small-button" type="button">回大廳</button>
+        </div>
+
+        <div id="forgePickerModal" class="settings-modal">
+          <div class="settings-box inventory-box">
+            <h2>選擇裝備</h2>
+            <div id="forgePickerList" class="inventory-list"></div>
+            <button id="closeForgePickerBtn" class="small-button" type="button">關閉</button>
+          </div>
         </div>
       </div>
     </section>

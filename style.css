@@ -35,6 +35,7 @@ button {
   justify-content: center;
 }
 
+#blacksmith.screen-active,
 #bagOpening.screen-active {
   display: grid;
   place-items: center;
@@ -91,6 +92,24 @@ h1 {
   object-fit: contain;
 }
 
+.blacksmith-button {
+  position: absolute;
+  top: 0;
+  left: 88px;
+  width: 80px;
+  height: 80px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.blacksmith-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
 .money-icon {
   width: 28px;
   height: 28px;
@@ -129,8 +148,23 @@ h1 {
   -webkit-user-drag: none;
 }
 
+.lobby-equipment-level {
+  position: absolute;
+  width: 58px;
+  color: #243126;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  pointer-events: none;
+}
+
 .equip-weapon {
   top: 0;
+  left: 0;
+}
+
+.equip-weapon-level {
+  top: 52px;
   left: 0;
 }
 
@@ -139,14 +173,29 @@ h1 {
   right: 0;
 }
 
+.equip-armor-level {
+  top: 52px;
+  right: 0;
+}
+
 .equip-shoes {
   right: 0;
   bottom: 0;
 }
 
+.equip-shoes-level {
+  right: 0;
+  bottom: -16px;
+}
+
 .equip-accessory {
   left: 0;
   bottom: 0;
+}
+
+.equip-accessory-level {
+  left: 0;
+  bottom: -16px;
 }
 
 .difficulty-info {
@@ -238,6 +287,7 @@ h2 {
 }
 
 .inventory-item {
+  position: relative;
   display: grid;
   place-items: center;
   aspect-ratio: 1;
@@ -250,8 +300,19 @@ h2 {
 
 .inventory-item img {
   width: 100%;
-  height: 100%;
+  height: calc(100% - 18px);
   object-fit: contain;
+}
+
+.item-level-label {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 3px;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  color: #243126;
 }
 
 .item-box {
@@ -286,6 +347,164 @@ h2 {
   resize: vertical;
 }
 
+.blacksmith-screen {
+  position: relative;
+  width: min(100%, 420px);
+  min-height: 70vh;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.blacksmith-mode-select,
+.blacksmith-panel {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.blacksmith-panel {
+  display: none;
+}
+
+.blacksmith-panel.is-active {
+  display: grid;
+}
+
+.blacksmith-title {
+  display: grid;
+  gap: 4px;
+  font-size: 34px;
+  font-weight: 800;
+}
+
+.blacksmith-title span {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.blacksmith-title .blacksmith-cost-text {
+  color: #b51616;
+}
+
+.blacksmith-title .blacksmith-success-text {
+  color: #218236;
+}
+
+.blacksmith-title .blacksmith-fail-text {
+  color: #b51616;
+}
+
+.blacksmith-inside {
+  width: min(100%, 360px);
+  max-height: 220px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.blacksmith-inside.is-forging {
+  animation: forge-shop-tilt 520ms ease-in;
+}
+
+@keyframes forge-shop-tilt {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  72% {
+    transform: rotate(45deg);
+  }
+
+  100% {
+    transform: rotate(45deg);
+  }
+}
+
+.forge-arrow {
+  width: 174px;
+  height: 138px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.forge-input-slots {
+  display: grid;
+  grid-template-columns: repeat(3, 82px);
+  gap: 10px;
+  justify-content: center;
+}
+
+.upgrade-slots {
+  display: grid;
+  grid-template-columns: 82px 90px 82px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.upgrade-arrow {
+  width: 90px;
+  height: 70px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.forge-slot {
+  position: relative;
+  width: 82px;
+  height: 82px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.forge-result-slot {
+  width: 96px;
+  height: 96px;
+}
+
+.forge-slot img {
+  width: 100%;
+  height: calc(100% - 18px);
+  object-fit: contain;
+}
+
+.blacksmith-result {
+  min-height: 28px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.blacksmith-result.is-success {
+  color: #218236;
+  animation: forge-result-pop 500ms ease-out;
+}
+
+.blacksmith-result.is-fail {
+  color: #b51616;
+  animation: forge-result-pop 500ms ease-out;
+}
+
+@keyframes forge-result-pop {
+  0% {
+    transform: scale(0.9);
+  }
+
+  45% {
+    transform: scale(1.18);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
 .primary-button,
 .small-button {
   border: 0;
@@ -299,6 +518,10 @@ h2 {
   width: 180px;
   padding: 14px 20px;
   font-size: 22px;
+}
+
+.primary-button:disabled {
+  opacity: 0.65;
 }
 
 .small-button {

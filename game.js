@@ -1,9 +1,11 @@
 const lobbyScreen = document.getElementById("lobby");
 const gameScreen = document.getElementById("game");
 const bagOpeningScreen = document.getElementById("bagOpening");
+const blacksmithScreen = document.getElementById("blacksmith");
 const startBtn = document.getElementById("startBtn");
 const difficultyInfo = document.getElementById("difficultyInfo");
 const bagButton = document.getElementById("bagButton");
+const blacksmithButton = document.getElementById("blacksmithButton");
 const difficultyModal = document.getElementById("difficultyModal");
 const heroInfoModal = document.getElementById("heroInfoModal");
 const inventoryModal = document.getElementById("inventoryModal");
@@ -14,9 +16,13 @@ const heroInfoBtn = document.getElementById("heroInfoBtn");
 const heroStatsList = document.getElementById("heroStatsList");
 const inventoryList = document.getElementById("inventoryList");
 const equippedWeapon = document.getElementById("equippedWeapon");
+const equippedWeaponLevel = document.getElementById("equippedWeaponLevel");
 const equippedArmor = document.getElementById("equippedArmor");
+const equippedArmorLevel = document.getElementById("equippedArmorLevel");
 const equippedShoes = document.getElementById("equippedShoes");
+const equippedShoesLevel = document.getElementById("equippedShoesLevel");
 const equippedAccessory = document.getElementById("equippedAccessory");
+const equippedAccessoryLevel = document.getElementById("equippedAccessoryLevel");
 const itemModal = document.getElementById("itemModal");
 const itemModalImage = document.getElementById("itemModalImage");
 const itemModalName = document.getElementById("itemModalName");
@@ -58,6 +64,29 @@ const openBagBtn = document.getElementById("openBagBtn");
 const openBagImage = document.getElementById("openBagImage");
 const openBagReward = document.getElementById("openBagReward");
 const openBagProgress = document.getElementById("openBagProgress");
+const blacksmithInsideImage = document.getElementById("blacksmithInsideImage");
+const upgradeBlacksmithInsideImage = document.getElementById("upgradeBlacksmithInsideImage");
+const blacksmithModeSelect = document.getElementById("blacksmithModeSelect");
+const blacksmithComposePanel = document.getElementById("blacksmithComposePanel");
+const blacksmithUpgradePanel = document.getElementById("blacksmithUpgradePanel");
+const openUpgradeModeBtn = document.getElementById("openUpgradeModeBtn");
+const openComposeModeBtn = document.getElementById("openComposeModeBtn");
+const blacksmithResult = document.getElementById("blacksmithResult");
+const blacksmithBackBtn = document.getElementById("blacksmithBackBtn");
+const blacksmithResultSlot = document.getElementById("blacksmithResultSlot");
+const blacksmithResultImage = document.getElementById("blacksmithResultImage");
+const synthesizeBtn = document.getElementById("synthesizeBtn");
+const forgePickerModal = document.getElementById("forgePickerModal");
+const forgePickerList = document.getElementById("forgePickerList");
+const closeForgePickerBtn = document.getElementById("closeForgePickerBtn");
+const forgeSlotButtons = [...document.querySelectorAll(".forge-input-slots .forge-slot")];
+const upgradeInputSlot = document.getElementById("upgradeInputSlot");
+const upgradeInputImage = document.getElementById("upgradeInputImage");
+const upgradeResultSlot = document.getElementById("upgradeResultSlot");
+const upgradeResultImage = document.getElementById("upgradeResultImage");
+const upgradeBtn = document.getElementById("upgradeBtn");
+const upgradeResultText = document.getElementById("upgradeResultText");
+const upgradeBackBtn = document.getElementById("upgradeBackBtn");
 
 let playerLane = 1;
 let bulletLane = 1;
@@ -82,6 +111,13 @@ let equippedItems = {
 };
 let selectedItem = null;
 let selectedItemMode = "equip";
+let forgeSlots = [null, null, null];
+let forgePickingSlot = 0;
+let forgeResultItem = null;
+let forgePickerMode = "compose";
+let upgradeSlot = null;
+let upgradedPendingItem = null;
+let isForging = false;
 let openingBagIndex = 0;
 let openingBagClicks = 0;
 let touchStartX = 0;
@@ -111,6 +147,15 @@ const rewardByDifficulty = {
 };
 
 const saveKey = "huangye-ludou-save-v1";
+const forgeCost = 500;
+const rarityNames = ["普通", "稀有", "史詩", "傳奇"];
+const typeOrder = { "武器": 1, "護甲": 2, "靴子": 3, "飾品": 4 };
+const upgradeCosts = [
+  { min: 1, max: 5, costs: { "普通": 100, "稀有": 300, "史詩": 500, "傳奇": 1000 }, chance: 50 },
+  { min: 6, max: 10, costs: { "普通": 200, "稀有": 500, "史詩": 1000, "傳奇": 2000 }, chance: 40 },
+  { min: 11, max: 15, costs: { "普通": 300, "稀有": 800, "史詩": 1500, "傳奇": 3000 }, chance: 30 },
+  { min: 16, max: 20, costs: { "普通": 500, "稀有": 1000, "史詩": 2500, "傳奇": 5000 }, chance: 20 },
+];
 
 const bossData = [
   { name: "小豬", difficulty: "簡單", hp: 100, defense: 0 },
@@ -139,7 +184,7 @@ const equipmentData = [
 
 const playerStats = {
   pierce: 0,
-  attack: 1000,
+  attack: 100,
   moveCooldown: 1000,
   critRate: 5,
   critDamage: 200,
@@ -159,6 +204,7 @@ function showScreen(screen) {
   lobbyScreen.classList.toggle("screen-active", screen === "lobby");
   gameScreen.classList.toggle("screen-active", screen === "game");
   bagOpeningScreen.classList.toggle("screen-active", screen === "bagOpening");
+  blacksmithScreen.classList.toggle("screen-active", screen === "blacksmith");
 }
 
 function updateHeroPosition() {
@@ -202,21 +248,64 @@ function getRandomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
 }
 
+function setEquipmentSlot(button, image, item, emptyImage, emptyAlt) {
+  let label = button.querySelector(".item-level-label");
+
+  if (!label) {
+    label = document.createElement("span");
+    label.className = "item-level-label";
+    button.appendChild(label);
+  }
+
+  image.src = item ? item.image : emptyImage;
+  image.alt = item ? item.name : emptyAlt;
+  label.textContent = item ? `Lv${item.level || 1}` : "";
+}
+
 function getRandomEquipment(rarity) {
   const rarityItems = equipmentData.filter((item) => item.rarity === rarity);
-  return getRandomItem(rarityItems.length > 0 ? rarityItems : equipmentData);
+  return { ...getRandomItem(rarityItems.length > 0 ? rarityItems : equipmentData), level: 1 };
 }
 
 function findEquipmentByName(name) {
   return equipmentData.find((item) => item.name === name) || null;
 }
 
+function normalizeEquipment(savedItem) {
+  if (typeof savedItem === "string") {
+    const item = findEquipmentByName(savedItem);
+
+    if (item) {
+      return { ...item, level: 1 };
+    }
+
+    const rarity = rarityNames.find((name) => savedItem.startsWith(name));
+    const baseName = rarity ? savedItem.slice(rarity.length) : "";
+    const baseItem = findEquipmentByName(baseName);
+
+    return baseItem ? { ...baseItem, name: savedItem, rarity, level: 1 } : null;
+  }
+
+  if (!savedItem || !savedItem.name) {
+    return null;
+  }
+
+  return {
+    name: savedItem.name,
+    type: savedItem.type,
+    rarity: savedItem.rarity,
+    effect: savedItem.effect,
+    image: savedItem.image,
+    level: Math.max(1, Number(savedItem.level) || 1),
+  };
+}
+
 function saveGame() {
   const saveData = {
     money,
-    inventory: inventory.map((item) => item.name),
+    inventory,
     equippedItems: Object.fromEntries(
-      Object.entries(equippedItems).map(([type, item]) => [type, item ? item.name : null])
+      Object.entries(equippedItems).map(([type, item]) => [type, item])
     ),
   };
 
@@ -246,11 +335,11 @@ function loadGame() {
 
     money = Number(saveData.money) || 0;
     inventory = (saveData.inventory || [])
-      .map(findEquipmentByName)
+      .map(normalizeEquipment)
       .filter(Boolean);
 
     Object.keys(equippedItems).forEach((type) => {
-      equippedItems[type] = findEquipmentByName(saveData.equippedItems?.[type]);
+      equippedItems[type] = normalizeEquipment(saveData.equippedItems?.[type]);
     });
 
     recalculatePlayerStats();
@@ -286,12 +375,13 @@ function applySaveEditor() {
 }
 
 function addEquipmentToInventory(item) {
-  inventory.push({ ...item });
+  inventory.push({ ...item, level: Math.max(1, Number(item.level) || 1) });
   saveGame();
 }
 
 function applyEquipmentEffect(item) {
   const amount = Number(item.effect.match(/\d+(\.\d+)?/)?.[0] || 0);
+  const upgradeLevel = Math.max(0, (Number(item.level) || 1) - 1);
 
   if (item.effect.includes("攻擊力")) {
     playerStats.attack += amount;
@@ -317,7 +407,38 @@ function applyEquipmentEffect(item) {
     playerStats.deathSaveRate += amount;
   }
 
+  if (upgradeLevel > 0) {
+    applyUpgradeBonus(item, upgradeLevel);
+  }
+
   playerStats.moveCooldown = Math.max(100, playerStats.moveCooldown);
+}
+
+function applyUpgradeBonus(item, upgradeLevel) {
+  const rarity = item.rarity;
+  const bonusByType = {
+    "武器": { stat: "attack", values: { "普通": 1, "稀有": 3, "史詩": 5, "傳奇": 10 } },
+    "護甲": { stat: "deathSaveRate", values: { "普通": 0.5, "稀有": 1, "史詩": 2, "傳奇": 3 } },
+    "靴子": { stat: "moveCooldown", values: { "普通": -50, "稀有": -50, "史詩": -50, "傳奇": -50 } },
+  };
+
+  if (bonusByType[item.type]) {
+    const bonus = bonusByType[item.type];
+    playerStats[bonus.stat] += (bonus.values[rarity] || 0) * upgradeLevel;
+    return;
+  }
+
+  if (item.effect.includes("攻擊力")) {
+    playerStats.attack += upgradeLevel;
+  } else if (item.effect.includes("破防")) {
+    playerStats.pierce += upgradeLevel;
+  } else if (item.effect.includes("移動冷卻")) {
+    playerStats.moveCooldown -= 50 * upgradeLevel;
+  } else if (item.effect.includes("爆擊率") || item.effect.includes("爆率")) {
+    playerStats.critRate += upgradeLevel;
+  } else if (item.effect.includes("爆擊傷害") || item.effect.includes("爆傷")) {
+    playerStats.critDamage += upgradeLevel;
+  }
 }
 
 function recalculatePlayerStats() {
@@ -332,10 +453,10 @@ function recalculatePlayerStats() {
 
 function updateEquippedImages() {
   const slots = {
-    "武器": { element: equippedWeapon, empty: "outputs/空武器圖.png", alt: "空武器" },
-    "護甲": { element: equippedArmor, empty: "outputs/空護甲圖.png", alt: "空護甲" },
-    "靴子": { element: equippedShoes, empty: "outputs/空靴子圖.png", alt: "空鞋子" },
-    "飾品": { element: equippedAccessory, empty: "outputs/空飾品圖.png", alt: "空飾品" },
+    "武器": { element: equippedWeapon, level: equippedWeaponLevel, empty: "outputs/空武器圖.png", alt: "空武器" },
+    "護甲": { element: equippedArmor, level: equippedArmorLevel, empty: "outputs/空護甲圖.png", alt: "空護甲" },
+    "靴子": { element: equippedShoes, level: equippedShoesLevel, empty: "outputs/空靴子圖.png", alt: "空鞋子" },
+    "飾品": { element: equippedAccessory, level: equippedAccessoryLevel, empty: "outputs/空飾品圖.png", alt: "空飾品" },
   };
 
   Object.entries(slots).forEach(([type, slot]) => {
@@ -343,6 +464,7 @@ function updateEquippedImages() {
 
     slot.element.src = item ? item.image : slot.empty;
     slot.element.alt = item ? item.name : slot.alt;
+    slot.level.textContent = item ? `Lv${item.level || 1}` : "";
   });
 }
 
@@ -371,15 +493,43 @@ function showItemModal(item, mode) {
   itemModalInfo.innerHTML = `
     <div>種類：${item.type}</div>
     <div>稀有度：${item.rarity}</div>
+    <div>等級：${item.level || 1}</div>
     <div>效果：${item.effect}</div>
   `;
   itemModalActionBtn.textContent = mode === "unequip" ? "卸下" : "穿上";
   itemModal.classList.add("is-active");
 }
 
+function getUpgradeRule(level) {
+  return upgradeCosts.find((rule) => level >= rule.min && level <= rule.max) || upgradeCosts[upgradeCosts.length - 1];
+}
+
+function getUpgradeCost(item) {
+  const level = Math.max(1, Number(item.level) || 1);
+  return getUpgradeRule(level).costs[item.rarity] || 0;
+}
+
+function getUpgradeChance(item) {
+  const level = Math.max(1, Number(item.level) || 1);
+  return getUpgradeRule(level).chance;
+}
+
+function updateUpgradeUi() {
+  if (upgradedPendingItem) {
+    upgradeBtn.innerHTML = "確定";
+    return;
+  }
+
+  if (!upgradeSlot) {
+    upgradeBtn.innerHTML = "升級<br>花費:<br>成功機率:";
+    return;
+  }
+
+  upgradeBtn.innerHTML = `升級<br>花費:${getUpgradeCost(upgradeSlot.item)}<br>成功機率:${getUpgradeChance(upgradeSlot.item)}%`;
+}
+
 function sortInventoryItems(items) {
   const rarityOrder = { "傳奇": 4, "史詩": 3, "稀有": 2, "普通": 1 };
-  const typeOrder = { "武器": 1, "護甲": 2, "靴子": 3, "飾品": 4 };
 
   return [...items].sort((a, b) => {
     const rarityDiff = (rarityOrder[b.rarity] || 0) - (rarityOrder[a.rarity] || 0);
@@ -396,6 +546,347 @@ function sortInventoryItems(items) {
 
     return a.name.localeCompare(b.name, "zh-Hant");
   });
+}
+
+function createHigherRarityItem(baseItem) {
+  const rarityIndex = rarityNames.indexOf(baseItem.rarity);
+  const nextRarity = rarityNames[Math.min(rarityIndex + 1, rarityNames.length - 1)];
+  const candidates = equipmentData.filter((item) => item.type === baseItem.type && item.rarity === nextRarity);
+
+  if (candidates.length > 0) {
+    return { ...getRandomItem(candidates) };
+  }
+
+  return {
+    ...baseItem,
+    name: `${nextRarity}${baseItem.name}`,
+    rarity: nextRarity,
+  };
+}
+
+function createSameRarityItem(type, rarity) {
+  const candidates = equipmentData.filter((item) => item.type === type && item.rarity === rarity);
+
+  if (candidates.length > 0) {
+    return { ...getRandomItem(candidates) };
+  }
+
+  return null;
+}
+
+function renderForgeSlots() {
+  forgeSlotButtons.forEach((button, index) => {
+    const image = button.querySelector("img");
+    const entry = forgeSlots[index];
+
+    setEquipmentSlot(button, image, entry?.item, "outputs/空裝備格子圖.png", `材料${index + 1}`);
+  });
+
+  synthesizeBtn.innerHTML = forgeSlots.every(Boolean) ? "合成<br>50%成功" : "合成";
+}
+
+function showForgeResultText(text, type) {
+  blacksmithResult.textContent = text;
+  blacksmithResult.classList.remove("is-success", "is-fail");
+
+  void blacksmithResult.offsetWidth;
+
+  if (type) {
+    blacksmithResult.classList.add(type === "success" ? "is-success" : "is-fail");
+  }
+}
+
+function getForgePickerItems(slotIndex) {
+  if (forgePickerMode === "upgrade") {
+    return inventory.map((item, index) => ({ item, index }));
+  }
+
+  const usedIndexes = forgeSlots
+    .filter(Boolean)
+    .map((entry) => entry.index);
+
+  return inventory
+    .map((item, index) => ({ item, index }))
+    .filter((entry) => !usedIndexes.includes(entry.index))
+    .filter((entry) => {
+      const firstItem = forgeSlots[0]?.item;
+
+      if (slotIndex === 0 || !firstItem) {
+        return slotIndex === 0;
+      }
+
+      return entry.item.type === firstItem.type && entry.item.rarity === firstItem.rarity;
+    });
+}
+
+function renderForgePicker(slotIndex) {
+  const entries = getForgePickerItems(slotIndex);
+
+  forgePickerList.innerHTML = "";
+
+  if (entries.length === 0) {
+    forgePickerList.textContent = "沒有可以放的裝備";
+    return;
+  }
+
+  sortInventoryItems(entries.map((entry) => entry.item)).forEach((item) => {
+    const entry = entries.find((candidate) => candidate.item === item);
+    const button = document.createElement("button");
+    const image = document.createElement("img");
+
+    button.className = "inventory-item";
+    button.type = "button";
+    button.title = `${item.name}｜Lv${item.level || 1}｜${item.type}｜${item.rarity}｜${item.effect}`;
+    image.src = item.image;
+    image.alt = item.name;
+    button.appendChild(image);
+    const levelLabel = document.createElement("span");
+
+    levelLabel.className = "item-level-label";
+    levelLabel.textContent = `Lv${item.level || 1}`;
+    button.appendChild(levelLabel);
+    button.addEventListener("click", () => {
+      if (forgePickerMode === "upgrade") {
+        upgradeSlot = entry;
+        upgradedPendingItem = null;
+        setEquipmentSlot(upgradeInputSlot, upgradeInputImage, item, "outputs/空裝備格子圖.png", "升級材料");
+        setEquipmentSlot(upgradeResultSlot, upgradeResultImage, null, "outputs/空裝備格子圖.png", "升級結果");
+        showUpgradeResultText("", "");
+        updateUpgradeUi();
+        forgePickerModal.classList.remove("is-active");
+        return;
+      }
+
+      forgeSlots[slotIndex] = entry;
+
+      if (slotIndex === 0) {
+        forgeSlots = forgeSlots.map((slot, index) => {
+          if (index === 0 || !slot) {
+            return slot;
+          }
+
+          return slot.item.type === item.type && slot.item.rarity === item.rarity ? slot : null;
+        });
+      }
+
+      showForgeResultText("", "");
+      renderForgeSlots();
+      forgePickerModal.classList.remove("is-active");
+    });
+    forgePickerList.appendChild(button);
+  });
+}
+
+function openForgePicker(slotIndex) {
+  forgePickerMode = "compose";
+  forgePickingSlot = slotIndex;
+  renderForgePicker(slotIndex);
+  forgePickerModal.classList.add("is-active");
+}
+
+function openUpgradePicker() {
+  forgePickerMode = "upgrade";
+  renderForgePicker(0);
+  forgePickerModal.classList.add("is-active");
+}
+
+function showBlacksmithMode(mode) {
+  blacksmithModeSelect.style.display = mode === "select" ? "grid" : "none";
+  blacksmithComposePanel.classList.toggle("is-active", mode === "compose");
+  blacksmithUpgradePanel.classList.toggle("is-active", mode === "upgrade");
+}
+
+function resetUpgradeSlot() {
+  upgradeSlot = null;
+  upgradedPendingItem = null;
+  setEquipmentSlot(upgradeInputSlot, upgradeInputImage, null, "outputs/空裝備格子圖.png", "升級材料");
+  setEquipmentSlot(upgradeResultSlot, upgradeResultImage, null, "outputs/空裝備格子圖.png", "升級結果");
+  showUpgradeResultText("", "");
+  updateUpgradeUi();
+}
+
+function collectUpgradeResult() {
+  if (!upgradedPendingItem) {
+    return;
+  }
+
+  upgradedPendingItem = null;
+  setEquipmentSlot(upgradeResultSlot, upgradeResultImage, null, "outputs/空裝備格子圖.png", "升級結果");
+  showUpgradeResultText("已放回包包", "success");
+  updateUpgradeUi();
+  saveGame();
+}
+
+function showUpgradeResultText(text, type) {
+  upgradeResultText.textContent = text;
+  upgradeResultText.classList.remove("is-success", "is-fail");
+
+  void upgradeResultText.offsetWidth;
+
+  if (type) {
+    upgradeResultText.classList.add(type === "success" ? "is-success" : "is-fail");
+  }
+}
+
+function upgradeSelectedItem() {
+  if (upgradedPendingItem) {
+    upgradeSlot = {
+      item: upgradedPendingItem,
+      index: inventory.indexOf(upgradedPendingItem),
+    };
+    upgradedPendingItem = null;
+    setEquipmentSlot(upgradeInputSlot, upgradeInputImage, upgradeSlot.item, "outputs/空裝備格子圖.png", "升級材料");
+    setEquipmentSlot(upgradeResultSlot, upgradeResultImage, null, "outputs/空裝備格子圖.png", "升級結果");
+    showUpgradeResultText("", "");
+    updateUpgradeUi();
+    return;
+  }
+
+  if (isForging) {
+    return;
+  }
+
+  if (!upgradeSlot) {
+    showUpgradeResultText("請先放入裝備", "fail");
+    return;
+  }
+
+  const item = upgradeSlot.item;
+
+  if ((item.level || 1) >= 20) {
+    showUpgradeResultText("已經滿等", "fail");
+    return;
+  }
+
+  const cost = getUpgradeCost(item);
+
+  if (money < cost) {
+    showUpgradeResultText("金錢不足", "fail");
+    return;
+  }
+
+  money -= cost;
+  updateMoneyText();
+  saveGame();
+  isForging = true;
+  upgradeBtn.disabled = true;
+  showUpgradeResultText("", "");
+  upgradeBlacksmithInsideImage.classList.remove("is-forging");
+
+  void upgradeBlacksmithInsideImage.offsetWidth;
+  upgradeBlacksmithInsideImage.classList.add("is-forging");
+
+  setTimeout(() => {
+    upgradeBlacksmithInsideImage.classList.remove("is-forging");
+
+    if (Math.random() * 100 < getUpgradeChance(item)) {
+      item.level = (item.level || 1) + 1;
+      upgradedPendingItem = item;
+      upgradeSlot = null;
+      setEquipmentSlot(upgradeInputSlot, upgradeInputImage, null, "outputs/空裝備格子圖.png", "升級材料");
+      setEquipmentSlot(upgradeResultSlot, upgradeResultImage, item, "outputs/空裝備格子圖.png", "升級結果");
+      showUpgradeResultText(`成功：${item.name} Lv${item.level}`, "success");
+    } else {
+      setEquipmentSlot(upgradeResultSlot, upgradeResultImage, null, "outputs/空裝備格子圖.png", "升級結果");
+      showUpgradeResultText(`失敗：${item.name} 保持 Lv${item.level || 1}`, "fail");
+    }
+
+    recalculatePlayerStats();
+    updateEquippedImages();
+    updateUpgradeUi();
+    saveGame();
+    isForging = false;
+    upgradeBtn.disabled = false;
+  }, 520);
+}
+
+function collectForgeResult() {
+  if (!forgeResultItem) {
+    return;
+  }
+
+  addEquipmentToInventory(forgeResultItem);
+  showForgeResultText(`已收下：${forgeResultItem.name}`, "success");
+  forgeResultItem = null;
+  setEquipmentSlot(blacksmithResultSlot, blacksmithResultImage, null, "outputs/空裝備格子圖.png", "合成結果");
+}
+
+function synthesizeForgeSlots() {
+  if (isForging) {
+    return;
+  }
+
+  if (forgeResultItem) {
+    showForgeResultText("先點上面的結果格收下", "fail");
+    return;
+  }
+
+  if (forgeSlots.some((slot) => !slot)) {
+    showForgeResultText("需要放滿三個裝備", "fail");
+    return;
+  }
+
+  const [firstSlot] = forgeSlots;
+  const isSameGroup = forgeSlots.every((slot) =>
+    slot.item.type === firstSlot.item.type && slot.item.rarity === firstSlot.item.rarity
+  );
+
+  if (!isSameGroup) {
+    showForgeResultText("三個裝備要同部位同稀有度", "fail");
+    return;
+  }
+
+  if (money < forgeCost) {
+    showForgeResultText("金錢不足", "fail");
+    return;
+  }
+
+  const usedIndexes = forgeSlots.map((entry) => entry.index);
+  const baseItem = firstSlot.item;
+  const isUpgrade = Math.random() < 0.5 && baseItem.rarity !== "傳奇";
+  const resultItem = isUpgrade
+    ? createHigherRarityItem(baseItem)
+    : createSameRarityItem(baseItem.type, baseItem.rarity) || { ...baseItem };
+  resultItem.level = 1;
+
+  isForging = true;
+  money -= forgeCost;
+  updateMoneyText();
+  saveGame();
+  synthesizeBtn.disabled = true;
+  showForgeResultText("", "");
+  blacksmithInsideImage.classList.remove("is-forging");
+
+  void blacksmithInsideImage.offsetWidth;
+  blacksmithInsideImage.classList.add("is-forging");
+
+  setTimeout(() => {
+    blacksmithInsideImage.classList.remove("is-forging");
+    inventory = inventory.filter((item, index) => !usedIndexes.includes(index));
+    forgeSlots.forEach((slot) => {
+      Object.keys(equippedItems).forEach((type) => {
+        if (equippedItems[type] === slot.item) {
+          equippedItems[type] = null;
+        }
+      });
+    });
+    forgeSlots = [null, null, null];
+    forgeResultItem = resultItem;
+    setEquipmentSlot(blacksmithResultSlot, blacksmithResultImage, resultItem, "outputs/空裝備格子圖.png", "合成結果");
+    showForgeResultText(
+      `${isUpgrade ? "成功" : "失敗"}：${resultItem.name}`,
+      isUpgrade ? "success" : "fail"
+    );
+    recalculatePlayerStats();
+    updateEquippedImages();
+    renderForgeSlots();
+    isForging = false;
+    synthesizeBtn.disabled = false;
+  }, 520);
+}
+
+function renderBlacksmith() {
+  renderForgeSlots();
 }
 
 function openBagRewardByRarity(rarityIndex) {
@@ -466,13 +957,18 @@ function updateInventoryList() {
 
     row.className = "inventory-item";
     row.type = "button";
-    row.title = `${item.name}｜${item.type}｜${item.rarity}｜${item.effect}`;
+    row.title = `${item.name}｜Lv${item.level || 1}｜${item.type}｜${item.rarity}｜${item.effect}`;
     row.addEventListener("click", () => {
       showItemModal(item, "equip");
     });
     image.src = item.image;
     image.alt = item.name;
     row.appendChild(image);
+    const levelLabel = document.createElement("span");
+
+    levelLabel.className = "item-level-label";
+    levelLabel.textContent = `Lv${item.level || 1}`;
+    row.appendChild(levelLabel);
     inventoryList.appendChild(row);
   });
 }
@@ -996,6 +1492,49 @@ closeHeroInfoBtn.addEventListener("click", () => {
 bagButton.addEventListener("click", () => {
   updateInventoryList();
   inventoryModal.classList.add("is-active");
+});
+
+blacksmithButton.addEventListener("click", () => {
+  showForgeResultText("", "");
+  showBlacksmithMode("select");
+  showScreen("blacksmith");
+});
+
+openComposeModeBtn.addEventListener("click", () => {
+  renderBlacksmith();
+  showBlacksmithMode("compose");
+});
+
+openUpgradeModeBtn.addEventListener("click", () => {
+  resetUpgradeSlot();
+  showBlacksmithMode("upgrade");
+});
+
+blacksmithBackBtn.addEventListener("click", () => {
+  collectForgeResult();
+  showScreen("lobby");
+});
+
+upgradeBackBtn.addEventListener("click", () => {
+  collectUpgradeResult();
+  showScreen("lobby");
+});
+
+blacksmithResultSlot.addEventListener("click", collectForgeResult);
+
+synthesizeBtn.addEventListener("click", synthesizeForgeSlots);
+
+upgradeInputSlot.addEventListener("click", openUpgradePicker);
+upgradeResultSlot.addEventListener("click", collectUpgradeResult);
+
+upgradeBtn.addEventListener("click", upgradeSelectedItem);
+
+closeForgePickerBtn.addEventListener("click", () => {
+  forgePickerModal.classList.remove("is-active");
+});
+
+forgeSlotButtons.forEach((button, index) => {
+  button.addEventListener("click", () => openForgePicker(index));
 });
 
 closeInventoryBtn.addEventListener("click", () => {

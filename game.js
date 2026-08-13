@@ -241,12 +241,24 @@ const failSound = new Audio("outputs/失敗聲.mp3");
 const successSound = new Audio("outputs/成功聲.mp3");
 let bgMusicVolume = 0.65;
 let sfxVolume = 0.85;
+let currentScreenName = "lobby";
+let audioContext = null;
+let musicGain = null;
+let sfxGain = null;
+let isAudioRouted = false;
 lobbyMusic.loop = true;
 battleMusic.loop = true;
 
 function applyVolumeSettings() {
-  lobbyMusic.volume = bgMusicVolume;
-  battleMusic.volume = bgMusicVolume;
+  const currentBgVolume = currentScreenName === "blacksmith" ? bgMusicVolume / 4 : bgMusicVolume;
+
+  if (musicGain && sfxGain) {
+    musicGain.gain.value = currentBgVolume;
+    sfxGain.gain.value = sfxVolume;
+  }
+
+  lobbyMusic.volume = currentBgVolume;
+  battleMusic.volume = currentBgVolume;
   hammerSound.volume = sfxVolume;
   failSound.volume = sfxVolume;
   successSound.volume = Math.min(1, sfxVolume * 2);
@@ -254,20 +266,56 @@ function applyVolumeSettings() {
 
 applyVolumeSettings();
 
+function prepareAudio() {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+  if (!AudioContextClass) {
+    return;
+  }
+
+  if (!audioContext) {
+    audioContext = new AudioContextClass();
+    musicGain = audioContext.createGain();
+    sfxGain = audioContext.createGain();
+    musicGain.connect(audioContext.destination);
+    sfxGain.connect(audioContext.destination);
+  }
+
+  if (!isAudioRouted) {
+    [lobbyMusic, battleMusic].forEach((music) => {
+      audioContext.createMediaElementSource(music).connect(musicGain);
+    });
+    [hammerSound, failSound, successSound].forEach((sound) => {
+      audioContext.createMediaElementSource(sound).connect(sfxGain);
+    });
+    isAudioRouted = true;
+  }
+
+  if (audioContext.state === "suspended") {
+    audioContext.resume().catch(() => {});
+  }
+
+  applyVolumeSettings();
+}
+
 function playMusic(music) {
+  prepareAudio();
   music.play().catch(() => {});
 }
 
 function playSound(sound) {
+  prepareAudio();
   sound.currentTime = 0;
   sound.play().catch(() => {});
 }
 
 function switchMusic(screen) {
+  currentScreenName = screen;
+  applyVolumeSettings();
+
   if (screen === "game") {
     lobbyMusic.pause();
     battleMusic.currentTime = 0;
-    battleMusic.volume = bgMusicVolume;
     playMusic(battleMusic);
     return;
   }
@@ -278,13 +326,14 @@ function switchMusic(screen) {
     return;
   }
 
-  lobbyMusic.volume = screen === "blacksmith" ? bgMusicVolume / 4 : bgMusicVolume;
   if (screen === "lobby" || screen === "blacksmith") {
     playMusic(lobbyMusic);
   }
 }
 
 document.addEventListener("pointerdown", () => {
+  prepareAudio();
+
   if (lobbyScreen.classList.contains("screen-active")) {
     playMusic(lobbyMusic);
   }

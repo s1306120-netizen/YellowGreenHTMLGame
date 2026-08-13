@@ -245,16 +245,19 @@ let currentScreenName = "lobby";
 let audioContext = null;
 let musicGain = null;
 let sfxGain = null;
+let successGain = null;
 let isAudioRouted = false;
+const useWebAudioVolume = window.matchMedia?.("(pointer: coarse)")?.matches || false;
 lobbyMusic.loop = true;
 battleMusic.loop = true;
 
 function applyVolumeSettings() {
   const currentBgVolume = currentScreenName === "blacksmith" ? bgMusicVolume / 4 : bgMusicVolume;
 
-  if (musicGain && sfxGain) {
+  if (musicGain && sfxGain && successGain) {
     musicGain.gain.value = currentBgVolume;
     sfxGain.gain.value = sfxVolume;
+    successGain.gain.value = Math.min(1, sfxVolume * 2);
   }
 
   lobbyMusic.volume = currentBgVolume;
@@ -266,45 +269,60 @@ function applyVolumeSettings() {
 
 applyVolumeSettings();
 
-function prepareAudio() {
-  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-
-  if (!AudioContextClass) {
+function setupWebAudioVolume() {
+  if (!useWebAudioVolume) {
     return;
   }
 
-  if (!audioContext) {
+  const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+
+  if (!AudioContextClass || isAudioRouted) {
+    return;
+  }
+
+  try {
     audioContext = new AudioContextClass();
     musicGain = audioContext.createGain();
     sfxGain = audioContext.createGain();
+    successGain = audioContext.createGain();
     musicGain.connect(audioContext.destination);
     sfxGain.connect(audioContext.destination);
-  }
+    successGain.connect(audioContext.destination);
 
-  if (!isAudioRouted) {
-    [lobbyMusic, battleMusic].forEach((music) => {
-      audioContext.createMediaElementSource(music).connect(musicGain);
-    });
-    [hammerSound, failSound, successSound].forEach((sound) => {
-      audioContext.createMediaElementSource(sound).connect(sfxGain);
-    });
+    audioContext.createMediaElementSource(lobbyMusic).connect(musicGain);
+    audioContext.createMediaElementSource(battleMusic).connect(musicGain);
+    audioContext.createMediaElementSource(hammerSound).connect(sfxGain);
+    audioContext.createMediaElementSource(failSound).connect(sfxGain);
+    audioContext.createMediaElementSource(successSound).connect(successGain);
+
     isAudioRouted = true;
+    applyVolumeSettings();
+  } catch (error) {
+    isAudioRouted = false;
+  }
+}
+
+function resumeWebAudio() {
+  if (!useWebAudioVolume) {
+    return;
   }
 
-  if (audioContext.state === "suspended") {
+  setupWebAudioVolume();
+
+  if (audioContext?.state === "suspended") {
     audioContext.resume().catch(() => {});
   }
-
-  applyVolumeSettings();
 }
 
 function playMusic(music) {
-  prepareAudio();
+  resumeWebAudio();
+  applyVolumeSettings();
   music.play().catch(() => {});
 }
 
 function playSound(sound) {
-  prepareAudio();
+  resumeWebAudio();
+  applyVolumeSettings();
   sound.currentTime = 0;
   sound.play().catch(() => {});
 }
@@ -332,7 +350,7 @@ function switchMusic(screen) {
 }
 
 document.addEventListener("pointerdown", () => {
-  prepareAudio();
+  resumeWebAudio();
 
   if (lobbyScreen.classList.contains("screen-active")) {
     playMusic(lobbyMusic);
@@ -2261,6 +2279,7 @@ window.addEventListener("keyup", (event) => {
 });
 
 function setBackgroundVolume(value) {
+  resumeWebAudio();
   bgMusicVolume = Math.min(1, Math.max(0, value));
   bgVolumeInput.value = Math.round(bgMusicVolume * 100);
   applyVolumeSettings();
@@ -2269,10 +2288,15 @@ function setBackgroundVolume(value) {
     lobbyMusic.volume = bgMusicVolume / 4;
   }
 
+  if (gameScreen.classList.contains("screen-active")) {
+    battleMusic.volume = bgMusicVolume;
+  }
+
   saveGame();
 }
 
 function setSfxVolume(value) {
+  resumeWebAudio();
   sfxVolume = Math.min(1, Math.max(0, value));
   sfxVolumeInput.value = Math.round(sfxVolume * 100);
   applyVolumeSettings();
@@ -2294,7 +2318,6 @@ function bindMobileVolumeSlider(input, setter) {
   input.addEventListener("input", () => setter(Number(input.value) / 100));
   input.addEventListener("change", () => setter(Number(input.value) / 100));
   input.addEventListener("pointerdown", (event) => {
-    event.preventDefault();
     input.setPointerCapture?.(event.pointerId);
     setFromPointer(event);
   });

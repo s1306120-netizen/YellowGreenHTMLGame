@@ -42,6 +42,8 @@ const bossCountText = document.getElementById("bossCountText");
 const multiplierText = document.getElementById("multiplierText");
 const rewardText = document.getElementById("rewardText");
 const moneyText = document.getElementById("moneyText");
+const bgVolumeInput = document.getElementById("bgVolumeInput");
+const sfxVolumeInput = document.getElementById("sfxVolumeInput");
 const backBtn = document.getElementById("backBtn");
 const resultBackBtn = document.getElementById("resultBackBtn");
 const resultModal = document.getElementById("result");
@@ -235,15 +237,20 @@ const battleMusic = new Audio("outputs/戰鬥音樂.mp3");
 const hammerSound = new Audio("outputs/敲擊聲.mp3");
 const failSound = new Audio("outputs/失敗聲.mp3");
 const successSound = new Audio("outputs/成功聲.mp3");
-const bgMusicVolume = 0.65;
-const blacksmithBgMusicVolume = bgMusicVolume / 2;
+let bgMusicVolume = 0.65;
+let sfxVolume = 0.85;
 lobbyMusic.loop = true;
 battleMusic.loop = true;
-lobbyMusic.volume = bgMusicVolume;
-battleMusic.volume = bgMusicVolume;
-hammerSound.volume = 0.85;
-failSound.volume = 0.85;
-successSound.volume = 1;
+
+function applyVolumeSettings() {
+  lobbyMusic.volume = bgMusicVolume;
+  battleMusic.volume = bgMusicVolume;
+  hammerSound.volume = sfxVolume;
+  failSound.volume = sfxVolume;
+  successSound.volume = Math.min(1, sfxVolume * 2);
+}
+
+applyVolumeSettings();
 
 function playMusic(music) {
   music.play().catch(() => {});
@@ -264,8 +271,13 @@ function switchMusic(screen) {
   }
 
   battleMusic.pause();
-  lobbyMusic.volume = screen === "blacksmith" || screen === "bagOpening" ? blacksmithBgMusicVolume : bgMusicVolume;
-  if (screen === "lobby" || screen === "blacksmith" || screen === "bagOpening") {
+  if (screen === "bagOpening") {
+    lobbyMusic.pause();
+    return;
+  }
+
+  lobbyMusic.volume = screen === "blacksmith" ? bgMusicVolume / 4 : bgMusicVolume;
+  if (screen === "lobby" || screen === "blacksmith") {
     playMusic(lobbyMusic);
   }
 }
@@ -440,6 +452,8 @@ function normalizeEquipment(savedItem) {
 function saveGame() {
   const saveData = {
     money,
+    bgMusicVolume,
+    sfxVolume,
     inventory,
     equippedItems: Object.fromEntries(
       Object.entries(equippedItems).map(([type, item]) => [type, item])
@@ -471,6 +485,11 @@ function loadGame() {
     const saveData = JSON.parse(rawSave);
 
     money = Number(saveData.money) || 0;
+    bgMusicVolume = Math.min(1, Math.max(0, Number(saveData.bgMusicVolume ?? bgMusicVolume)));
+    sfxVolume = Math.min(1, Math.max(0, Number(saveData.sfxVolume ?? sfxVolume)));
+    bgVolumeInput.value = Math.round(bgMusicVolume * 100);
+    sfxVolumeInput.value = Math.round(sfxVolume * 100);
+    applyVolumeSettings();
     inventory = (saveData.inventory || [])
       .map(normalizeEquipment)
       .filter(Boolean);
@@ -1797,7 +1816,7 @@ function clickOpenBag() {
   if (openingBagClicks >= 4) {
     bag.upgraded = true;
     const reward = collectBagReward(bag);
-    setTimeout(() => playSound(successSound), 180);
+    setTimeout(() => playSound(successSound), 420);
 
     openBagImage.src = reward.image;
     openBagImage.alt = reward.alt;
@@ -2190,6 +2209,23 @@ window.addEventListener("keyup", (event) => {
   }
 });
 
+bgVolumeInput.addEventListener("input", () => {
+  bgMusicVolume = Number(bgVolumeInput.value) / 100;
+  applyVolumeSettings();
+
+  if (blacksmithScreen.classList.contains("screen-active")) {
+    lobbyMusic.volume = bgMusicVolume / 4;
+  }
+
+  saveGame();
+});
+
+sfxVolumeInput.addEventListener("input", () => {
+  sfxVolume = Number(sfxVolumeInput.value) / 100;
+  applyVolumeSettings();
+  saveGame();
+});
+
 document.addEventListener("touchmove", (event) => {
   if (document.body.classList.contains("is-battle")) {
     event.preventDefault();
@@ -2220,6 +2256,8 @@ hero.addEventListener("transitionend", (event) => {
 });
 
 loadGame();
+bgVolumeInput.value = Math.round(bgMusicVolume * 100);
+sfxVolumeInput.value = Math.round(sfxVolume * 100);
 updateHeroPosition();
 resetBullet();
 resetPlayerBullet();

@@ -336,8 +336,13 @@ function playMusic(music) {
 function playSound(sound) {
   resumeWebAudio();
   applyVolumeSettings();
-  sound.currentTime = 0;
-  sound.play().catch(() => {});
+  const soundClone = sound.cloneNode();
+
+  soundClone.volume = sound.volume;
+  soundClone.play().catch(() => {
+    sound.currentTime = 0;
+    sound.play().catch(() => {});
+  });
 }
 
 function unlockAudioElements() {

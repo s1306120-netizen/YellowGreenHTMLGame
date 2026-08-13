@@ -143,6 +143,7 @@ let isOpeningBagReward = false;
 let canPlayerDamage = false;
 let isMoving = false;
 let lastMoveTime = -Infinity;
+let battleArmorRate = 0;
 
 const rewardByDifficulty = {
   "簡單": 100,
@@ -175,15 +176,45 @@ const bagRarities = [
 const equipmentData = [
   { name: "破舊木劍", type: "武器", rarity: "普通", effect: "攻擊力+5", image: "outputs/破舊木劍圖(武器).png" },
   { name: "標準木劍", type: "武器", rarity: "普通", effect: "攻擊力+10", image: "outputs/標準木劍圖(武器).png" },
-  { name: "皮革背心", type: "護甲", rarity: "普通", effect: "1%免死", image: "outputs/皮革背心圖(護甲).png" },
-  { name: "皮革護甲", type: "護甲", rarity: "普通", effect: "3%免死", image: "outputs/皮革護甲圖(護甲).png" },
-  { name: "皮革鞋子", type: "靴子", rarity: "普通", effect: "移動冷卻-0.1秒", image: "outputs/皮革鞋子圖(靴子).png" },
-  { name: "皮革靴子", type: "靴子", rarity: "普通", effect: "移動冷卻-0.2秒", image: "outputs/皮革靴子圖(靴子).png" },
+  { name: "短石劍", type: "武器", rarity: "稀有", effect: "攻擊力+15", image: "outputs/短石劍圖(武器).png" },
+  { name: "鋒利石劍", type: "武器", rarity: "稀有", effect: "攻擊力+20", image: "outputs/鋒利石劍圖(武器).png" },
+  { name: "鑽石匕首", type: "武器", rarity: "史詩", effect: "攻擊力+30", image: "outputs/鑽石匕首圖(武器).png" },
+  { name: "鋒利長鑽劍", type: "武器", rarity: "史詩", effect: "攻擊力+40", image: "outputs/鋒利長鑽劍圖(武器).png" },
+  { name: "熔岩烈劍", type: "武器", rarity: "傳奇", effect: "攻擊力+80", image: "outputs/熔岩烈劍圖(武器).png" },
+  { name: "皮革背心", type: "護甲", rarity: "普通", effect: "8%護甲 0%閃避", image: "outputs/皮革背心圖(護甲).png" },
+  { name: "皮革護甲", type: "護甲", rarity: "普通", effect: "12%護甲 0%閃避", image: "outputs/皮革護甲圖(護甲).png" },
+  { name: "鋼鐵背心", type: "護甲", rarity: "稀有", effect: "20%護甲 1%閃避", image: "outputs/鋼鐵背心圖(護甲).png" },
+  { name: "鐵製鎧甲", type: "護甲", rarity: "稀有", effect: "25%護甲 1%閃避", image: "outputs/鐵製鎧甲圖(護甲).png" },
+  { name: "鑽石背心", type: "護甲", rarity: "史詩", effect: "40%護甲 3%閃避", image: "outputs/鑽石背心圖(護甲).png" },
+  { name: "鑽石鎧甲", type: "護甲", rarity: "史詩", effect: "50%護甲 3%閃避", image: "outputs/鑽石鎧甲圖(護甲).png" },
+  { name: "熔岩套裝", type: "護甲", rarity: "傳奇", effect: "80%護甲 5%閃避", image: "outputs/熔岩套裝圖(護甲).png" },
+  { name: "皮革鞋子", type: "靴子", rarity: "普通", effect: "3%護甲 移動冷卻-0.1秒", image: "outputs/皮革鞋子圖(靴子).png" },
+  { name: "皮革靴子", type: "靴子", rarity: "普通", effect: "5%護甲 移動冷卻-0.1秒", image: "outputs/皮革靴子圖(靴子).png" },
+  { name: "鋼鐵雨鞋", type: "靴子", rarity: "稀有", effect: "10%護甲 移動冷卻-0.2秒", image: "outputs/鋼鐵雨鞋圖(靴子).png" },
+  { name: "鐵製靴子", type: "靴子", rarity: "稀有", effect: "12%護甲 移動冷卻-0.2秒", image: "outputs/鐵製靴子圖(靴子).png" },
+  { name: "鑽石拖鞋", type: "靴子", rarity: "史詩", effect: "18%護甲 移動冷卻-0.3秒", image: "outputs/鑽石拖鞋圖(靴子).png" },
+  { name: "鑽石靴子", type: "靴子", rarity: "史詩", effect: "20%護甲 移動冷卻-0.3秒", image: "outputs/鑽石靴子圖(靴子).png" },
+  { name: "熔岩戰靴", type: "靴子", rarity: "傳奇", effect: "30%護甲 移動冷卻-0.5秒", image: "outputs/熔岩戰靴圖(靴子).png" },
   { name: "小攻擊寶石", type: "飾品", rarity: "普通", effect: "攻擊力+5", image: "outputs/小攻擊寶石圖(吊飾).png" },
   { name: "小破防寶石", type: "飾品", rarity: "普通", effect: "破防+5", image: "outputs/小破防寶石圖(吊飾).png" },
-  { name: "小移動寶石", type: "飾品", rarity: "普通", effect: "移動冷卻-0.1秒", image: "outputs/小移動寶石圖(吊飾).png" },
+  { name: "小閃避寶石", type: "飾品", rarity: "普通", effect: "1%閃避", image: "outputs/小閃避寶石圖(吊飾).png" },
   { name: "小爆率寶石", type: "飾品", rarity: "普通", effect: "爆擊率+5%", image: "outputs/小爆率寶石圖(吊飾).png" },
   { name: "小爆傷寶石", type: "飾品", rarity: "普通", effect: "爆擊傷害+10%", image: "outputs/小爆傷寶石圖(吊飾).png" },
+  { name: "中攻擊寶石", type: "飾品", rarity: "稀有", effect: "攻擊力+10", image: "outputs/中攻擊寶石圖(吊飾).png" },
+  { name: "中破防寶石", type: "飾品", rarity: "稀有", effect: "破防+10", image: "outputs/中破防寶石圖(吊飾).png" },
+  { name: "中閃避寶石", type: "飾品", rarity: "稀有", effect: "2%閃避", image: "outputs/中閃避寶石圖(吊飾).png" },
+  { name: "中爆率寶石", type: "飾品", rarity: "稀有", effect: "爆擊率+10%", image: "outputs/中爆率寶石圖(吊飾).png" },
+  { name: "中爆傷寶石", type: "飾品", rarity: "稀有", effect: "爆擊傷害+30%", image: "outputs/中爆傷寶石圖(吊飾).png" },
+  { name: "大攻擊寶石", type: "飾品", rarity: "史詩", effect: "攻擊力+20", image: "outputs/大攻擊寶石圖(吊飾).png" },
+  { name: "大破防寶石", type: "飾品", rarity: "史詩", effect: "破防+20", image: "outputs/大破防寶石圖(吊飾).png" },
+  { name: "大閃避寶石", type: "飾品", rarity: "史詩", effect: "3%閃避", image: "outputs/大閃避寶石圖(吊飾).png" },
+  { name: "大爆率寶石", type: "飾品", rarity: "史詩", effect: "爆擊率+20%", image: "outputs/大爆率寶石圖(吊飾).png" },
+  { name: "大爆傷寶石", type: "飾品", rarity: "史詩", effect: "爆擊傷害+60%", image: "outputs/大爆傷寶石圖(吊飾).png" },
+  { name: "至尊攻擊寶石", type: "飾品", rarity: "傳奇", effect: "攻擊力+50", image: "outputs/至尊攻擊寶石圖(吊飾).png" },
+  { name: "至尊破防寶石", type: "飾品", rarity: "傳奇", effect: "破防+50", image: "outputs/至尊破防寶石圖(吊飾).png" },
+  { name: "至尊閃避寶石", type: "飾品", rarity: "傳奇", effect: "5%閃避", image: "outputs/至尊閃避寶石圖(吊飾).png" },
+  { name: "至尊爆率寶石", type: "飾品", rarity: "傳奇", effect: "爆擊率+40%", image: "outputs/至尊爆率寶石圖(吊飾).png" },
+  { name: "至尊爆傷寶石", type: "飾品", rarity: "傳奇", effect: "爆擊傷害+120%", image: "outputs/至尊爆傷寶石圖(吊飾).png" },
 ];
 
 const playerStats = {
@@ -192,7 +223,8 @@ const playerStats = {
   moveCooldown: 1000,
   critRate: 5,
   critDamage: 200,
-  deathSaveRate: 0,
+  armorRate: 0,
+  dodgeRate: 0,
   specialEffect: "無",
 };
 
@@ -200,25 +232,40 @@ const basePlayerStats = { ...playerStats };
 
 const lobbyMusic = new Audio("outputs/大廳音樂.mp3");
 const battleMusic = new Audio("outputs/戰鬥音樂.mp3");
+const hammerSound = new Audio("outputs/敲擊聲.mp3");
+const failSound = new Audio("outputs/失敗聲.mp3");
+const successSound = new Audio("outputs/成功聲.mp3");
+const bgMusicVolume = 0.65;
+const blacksmithBgMusicVolume = bgMusicVolume / 2;
 lobbyMusic.loop = true;
 battleMusic.loop = true;
-lobbyMusic.volume = 0.65;
-battleMusic.volume = 0.65;
+lobbyMusic.volume = bgMusicVolume;
+battleMusic.volume = bgMusicVolume;
+hammerSound.volume = 0.85;
+failSound.volume = 0.85;
+successSound.volume = 1;
 
 function playMusic(music) {
   music.play().catch(() => {});
+}
+
+function playSound(sound) {
+  sound.currentTime = 0;
+  sound.play().catch(() => {});
 }
 
 function switchMusic(screen) {
   if (screen === "game") {
     lobbyMusic.pause();
     battleMusic.currentTime = 0;
+    battleMusic.volume = bgMusicVolume;
     playMusic(battleMusic);
     return;
   }
 
   battleMusic.pause();
-  if (screen === "lobby") {
+  lobbyMusic.volume = screen === "blacksmith" || screen === "bagOpening" ? blacksmithBgMusicVolume : bgMusicVolume;
+  if (screen === "lobby" || screen === "blacksmith" || screen === "bagOpening") {
     playMusic(lobbyMusic);
   }
 }
@@ -260,13 +307,14 @@ function updateDifficultyInfo() {
   const multiplier = Math.max(1, Math.round(Number(multiplierInput.value) * 2) / 2);
   const bossCount = Math.max(1, Number(bossCountInput.value));
   const reward = rewardByDifficulty[difficultySelect.value] * bossCount * multiplier;
+  const bagDropChance = Math.min(100, 20 * multiplier);
 
   multiplierInput.value = multiplier.toFixed(1);
   bossCountInput.value = bossCount;
   difficultyText.textContent = `難度：${difficultySelect.value}`;
   bossCountText.textContent = `BOSS：${bossCount} 隻`;
   multiplierText.textContent = `倍率：${multiplier.toFixed(1)}x`;
-  rewardText.textContent = `會獲得的東西：金錢${reward}`;
+  rewardText.textContent = `戰利品：金錢${reward}、${bagDropChance}%獲得袋子*${bossCount}`;
 }
 
 function updateHeroStatsList() {
@@ -276,13 +324,54 @@ function updateHeroStatsList() {
     <div>移動冷卻：${(playerStats.moveCooldown / 1000).toFixed(1)}秒</div>
     <div>爆擊率：${playerStats.critRate}%</div>
     <div>爆擊傷害：${playerStats.critDamage}%</div>
-    <div>免死率：${playerStats.deathSaveRate}%</div>
+    <div>護甲：${formatEffectAmount(playerStats.armorRate)}%</div>
+    <div>閃避率：${formatEffectAmount(playerStats.dodgeRate)}%</div>
     <div>特殊效果：${playerStats.specialEffect}</div>
   `;
 }
 
 function getRandomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
+}
+
+function getLevelColorClass(level) {
+  const itemLevel = Math.max(1, Number(level) || 1);
+
+  if (itemLevel >= 20) {
+    return "level-color-rainbow";
+  }
+
+  if (itemLevel >= 15) {
+    return "level-color-yellow";
+  }
+
+  if (itemLevel >= 10) {
+    return "level-color-purple";
+  }
+
+  if (itemLevel >= 5) {
+    return "level-color-blue";
+  }
+
+  return "level-color-black";
+}
+
+function setLevelLabel(label, item) {
+  label.classList.remove(
+    "level-color-black",
+    "level-color-blue",
+    "level-color-purple",
+    "level-color-yellow",
+    "level-color-rainbow"
+  );
+
+  if (!item) {
+    label.textContent = "";
+    return;
+  }
+
+  label.textContent = `Lv${item.level || 1}`;
+  label.classList.add(getLevelColorClass(item.level));
 }
 
 function setEquipmentSlot(button, image, item, emptyImage, emptyAlt) {
@@ -296,12 +385,23 @@ function setEquipmentSlot(button, image, item, emptyImage, emptyAlt) {
 
   image.src = item ? item.image : emptyImage;
   image.alt = item ? item.name : emptyAlt;
-  label.textContent = item ? `Lv${item.level || 1}` : "";
+  setLevelLabel(label, item);
 }
 
 function getRandomEquipment(rarity) {
-  const rarityItems = equipmentData.filter((item) => item.rarity === rarity);
-  return { ...getRandomItem(rarityItems.length > 0 ? rarityItems : equipmentData), level: 1 };
+  const types = ["武器", "護甲", "靴子", "飾品"];
+  const shuffledTypes = [...types].sort(() => Math.random() - 0.5);
+
+  for (const type of shuffledTypes) {
+    const rarityItems = equipmentData.filter((item) => item.rarity === rarity && item.type === type);
+
+    if (rarityItems.length > 0) {
+      return { ...getRandomItem(rarityItems), level: 1 };
+    }
+  }
+
+  const fallbackItems = equipmentData.filter((item) => item.rarity === rarity);
+  return { ...getRandomItem(fallbackItems.length > 0 ? fallbackItems : equipmentData), level: 1 };
 }
 
 function findEquipmentByName(name) {
@@ -420,6 +520,18 @@ function getEffectAmount(item) {
   return Number(item.effect.match(/\d+(\.\d+)?/)?.[0] || 0);
 }
 
+function getEffectNumberBefore(item, keyword) {
+  const match = item.effect.match(new RegExp(`(\\d+(?:\\.\\d+)?)%${keyword}`));
+
+  return Number(match?.[1] || 0);
+}
+
+function getMoveCooldownAmount(item) {
+  const match = item.effect.match(/移動冷卻-(\d+(?:\.\d+)?)秒/);
+
+  return Number(match?.[1] || 0);
+}
+
 function getNextFlatUpgradeAmount(currentAmount) {
   return Math.max(1, Math.floor((currentAmount - 10) / 5) + 1);
 }
@@ -429,13 +541,71 @@ function getScaledEffectAmount(item) {
 }
 
 function getNextEffectUpgradeAmount(item) {
-  const currentAmount = getScaledEffectAmount(item);
-
   if (item.effect.includes("移動冷卻")) {
     return 0.05;
   }
 
-  return getNextFlatUpgradeAmount(currentAmount);
+  if (item.type === "武器") {
+    return { "普通": 1, "稀有": 3, "史詩": 5, "傳奇": 10 }[item.rarity] || 1;
+  }
+
+  if (item.type === "護甲") {
+    return { "普通": 1, "稀有": 3, "史詩": 5, "傳奇": 10 }[item.rarity] || 1;
+  }
+
+  if (item.type === "靴子") {
+    return { "普通": 1, "稀有": 2, "史詩": 3, "傳奇": 5 }[item.rarity] || 1;
+  }
+
+  if (item.name.includes("至尊攻擊") || item.name.includes("至尊破防")) {
+    return 8;
+  }
+
+  if (item.name.includes("至尊閃避")) {
+    return 1;
+  }
+
+  if (item.name.includes("至尊爆率")) {
+    return 3;
+  }
+
+  if (item.name.includes("至尊爆傷")) {
+    return 10;
+  }
+
+  if (item.name.includes("大攻擊") || item.name.includes("大破防")) {
+    return 4;
+  }
+
+  if (item.name.includes("大閃避")) {
+    return 0.75;
+  }
+
+  if (item.name.includes("大爆率")) {
+    return 2;
+  }
+
+  if (item.name.includes("大爆傷")) {
+    return 6;
+  }
+
+  if (item.name.includes("中攻擊") || item.name.includes("中破防")) {
+    return 2;
+  }
+
+  if (item.name.includes("中閃避")) {
+    return 0.5;
+  }
+
+  if (item.name.includes("中爆率")) {
+    return 1.5;
+  }
+
+  if (item.name.includes("中爆傷")) {
+    return 3;
+  }
+
+  return 1;
 }
 
 function formatEffectAmount(amount) {
@@ -449,16 +619,85 @@ function getScaledEffectText(item) {
 }
 
 function getUpgradedEffectText(item) {
-  const amount = getEffectAmount(item);
-  const nextAmount = item.effect.includes("移動冷卻")
-    ? amount + getNextEffectUpgradeAmount(item)
-    : amount + getNextFlatUpgradeAmount(amount);
+  const nextLevel = (item.level || 1) + 1;
+  let effect = item.effect;
 
-  return item.effect.replace(/\d+(\.\d+)?/, formatEffectAmount(nextAmount));
+  function addBefore(keyword, amount) {
+    effect = effect.replace(new RegExp(`(\\d+(?:\\.\\d+)?)%${keyword}`), (_, value) => {
+      return `${formatEffectAmount(Number(value) + amount)}%${keyword}`;
+    });
+  }
+
+  function addAfter(keyword, amount) {
+    effect = effect.replace(new RegExp(`${keyword}\\+(\\d+(?:\\.\\d+)?)(%)?`), (_, value, percent = "") => {
+      return `${keyword}+${formatEffectAmount(Number(value) + amount)}${percent}`;
+    });
+  }
+
+  if (item.type === "武器") {
+    addAfter("攻擊力", getNextEffectUpgradeAmount(item));
+
+    if (nextLevel % 5 === 0) {
+      if (effect.includes("破防")) {
+        addAfter("破防", 5);
+      } else {
+        effect += " 破防+5";
+      }
+    }
+
+    return effect;
+  }
+
+  if (item.type === "護甲") {
+    addBefore("護甲", getNextEffectUpgradeAmount(item));
+
+    if (nextLevel % 5 === 0) {
+      addBefore("閃避", 5);
+    }
+
+    return effect;
+  }
+
+  if (item.type === "靴子") {
+    addBefore("護甲", getNextEffectUpgradeAmount(item));
+
+    if (nextLevel % 5 === 0) {
+      effect = effect.replace(/移動冷卻-(\d+(?:\.\d+)?)秒/, (_, value) => {
+        return `移動冷卻-${formatEffectAmount(Number(value) + 0.25)}秒`;
+      });
+    }
+
+    return effect;
+  }
+
+  if (item.effect.includes("閃避")) {
+    addBefore("閃避", getNextEffectUpgradeAmount(item));
+    return effect;
+  }
+
+  if (item.effect.includes("攻擊力")) {
+    addAfter("攻擊力", getNextEffectUpgradeAmount(item));
+  } else if (item.effect.includes("破防")) {
+    addAfter("破防", getNextEffectUpgradeAmount(item));
+  } else if (item.effect.includes("爆擊率")) {
+    addAfter("爆擊率", getNextEffectUpgradeAmount(item));
+  } else if (item.effect.includes("爆擊傷害")) {
+    addAfter("爆擊傷害", getNextEffectUpgradeAmount(item));
+  }
+
+  return effect;
 }
 
 function applyEquipmentEffect(item) {
   const amount = getScaledEffectAmount(item);
+
+  if (item.effect.includes("護甲")) {
+    playerStats.armorRate += getEffectNumberBefore(item, "護甲");
+  }
+
+  if (item.effect.includes("閃避")) {
+    playerStats.dodgeRate += getEffectNumberBefore(item, "閃避");
+  }
 
   if (item.effect.includes("攻擊力")) {
     playerStats.attack += amount;
@@ -469,7 +708,7 @@ function applyEquipmentEffect(item) {
   }
 
   if (item.effect.includes("移動冷卻")) {
-    playerStats.moveCooldown -= amount * 1000;
+    playerStats.moveCooldown -= getMoveCooldownAmount(item) * 1000;
   }
 
   if (item.effect.includes("爆擊率")) {
@@ -480,18 +719,14 @@ function applyEquipmentEffect(item) {
     playerStats.critDamage += amount;
   }
 
-  if (item.effect.includes("免死")) {
-    playerStats.deathSaveRate += amount;
-  }
-
-  playerStats.moveCooldown = Math.max(100, playerStats.moveCooldown);
+  playerStats.moveCooldown = Math.max(0, playerStats.moveCooldown);
 }
 
 function applyUpgradeBonus(item, upgradeLevel) {
   const rarity = item.rarity;
   const bonusByType = {
     "武器": { stat: "attack", values: { "普通": 1, "稀有": 3, "史詩": 5, "傳奇": 10 } },
-    "護甲": { stat: "deathSaveRate", values: { "普通": 0.5, "稀有": 1, "史詩": 2, "傳奇": 3 } },
+    "護甲": { stat: "armorRate", values: { "普通": 1, "稀有": 3, "史詩": 5, "傳奇": 10 } },
     "靴子": { stat: "moveCooldown", values: { "普通": -50, "稀有": -50, "史詩": -50, "傳奇": -50 } },
   };
 
@@ -537,7 +772,7 @@ function updateEquippedImages() {
 
     slot.element.src = item ? item.image : slot.empty;
     slot.element.alt = item ? item.name : slot.alt;
-    slot.level.textContent = item ? `Lv${item.level || 1}` : "";
+    setLevelLabel(slot.level, item);
   });
 }
 
@@ -577,6 +812,14 @@ function removeDroppedEquippedItemsFromInventory(droppedItems) {
   });
 }
 
+function syncEquippedItemUpgrade(oldItem, upgradedItem) {
+  const equippedItem = equippedItems[upgradedItem.type];
+
+  if (isSameEquipmentItem(equippedItem, oldItem)) {
+    equippedItems[upgradedItem.type] = upgradedItem;
+  }
+}
+
 function showItemModal(item, mode) {
   selectedItem = item;
   selectedItemMode = mode;
@@ -608,6 +851,18 @@ function getUpgradeChance(item) {
 }
 
 function getUpgradeBonusInfo(item) {
+  if (item.type === "武器") {
+    return { stat: "攻擊力", value: getNextEffectUpgradeAmount(item) };
+  }
+
+  if (item.type === "護甲") {
+    return { stat: "護甲", value: getNextEffectUpgradeAmount(item), unit: "%" };
+  }
+
+  if (item.type === "靴子") {
+    return { stat: "護甲", value: getNextEffectUpgradeAmount(item), unit: "%" };
+  }
+
   if (item.effect.includes("攻擊力")) {
     return { stat: "攻擊力", value: getNextEffectUpgradeAmount(item) };
   }
@@ -616,8 +871,12 @@ function getUpgradeBonusInfo(item) {
     return { stat: "破防", value: getNextEffectUpgradeAmount(item) };
   }
 
-  if (item.effect.includes("移動冷卻")) {
-    return { stat: "移動冷卻", value: -getNextEffectUpgradeAmount(item), unit: "秒" };
+  if (item.effect.includes("護甲")) {
+    return { stat: "護甲", value: getNextEffectUpgradeAmount(item), unit: "%" };
+  }
+
+  if (item.effect.includes("閃避")) {
+    return { stat: "閃避率", value: getNextEffectUpgradeAmount(item), unit: "%" };
   }
 
   if (item.effect.includes("爆擊率")) {
@@ -628,11 +887,74 @@ function getUpgradeBonusInfo(item) {
     return { stat: "爆擊傷害", value: getNextEffectUpgradeAmount(item), unit: "%" };
   }
 
-  if (item.effect.includes("免死")) {
-    return { stat: "免死率", value: getNextEffectUpgradeAmount(item), unit: "%" };
+  return { stat: "特殊效果", value: 0 };
+}
+
+function getUpgradeEffectLines(item) {
+  const lines = [];
+
+  function pushLine(text, value, unit = "") {
+    const sign = value >= 0 ? "+" : "";
+    lines.push(`${text}<span class="upgrade-plus">${sign}${formatEffectAmount(value)}${unit}</span>`);
   }
 
-  return { stat: "特殊效果", value: 0 };
+  if (item.type === "武器") {
+    const attackMatch = item.effect.match(/攻擊力\+(\d+(?:\.\d+)?)/);
+
+    if (attackMatch) {
+      pushLine(`攻擊力+${attackMatch[1]}`, getNextEffectUpgradeAmount(item));
+    }
+
+    if (((item.level || 1) + 1) % 5 === 0) {
+      const pierceMatch = item.effect.match(/破防\+(\d+(?:\.\d+)?)/);
+      pushLine(pierceMatch ? `破防+${pierceMatch[1]}` : "破防+0", 5);
+    }
+
+    return lines;
+  }
+
+  if (item.type === "護甲") {
+    const armor = getEffectNumberBefore(item, "護甲");
+    const dodge = getEffectNumberBefore(item, "閃避");
+
+    pushLine(`${armor}%護甲`, getNextEffectUpgradeAmount(item), "%");
+
+    if (((item.level || 1) + 1) % 5 === 0) {
+      pushLine(`${dodge}%閃避`, 5, "%");
+    }
+
+    return lines;
+  }
+
+  if (item.type === "靴子") {
+    const armor = getEffectNumberBefore(item, "護甲");
+    const cooldown = getMoveCooldownAmount(item);
+
+    pushLine(`${armor}%護甲`, getNextEffectUpgradeAmount(item), "%");
+
+    if (cooldown > 0) {
+      const cooldownBonus = ((item.level || 1) + 1) % 5 === 0 ? 0.25 : 0;
+      pushLine(`移動冷卻-${cooldown}秒`, cooldownBonus, "秒");
+    }
+
+    return lines;
+  }
+
+  if (item.effect.includes("閃避")) {
+    pushLine(`${getEffectNumberBefore(item, "閃避")}%閃避`, getNextEffectUpgradeAmount(item), "%");
+  } else if (item.effect.includes("攻擊力")) {
+    pushLine(getScaledEffectText(item), getNextEffectUpgradeAmount(item));
+  } else if (item.effect.includes("破防")) {
+    pushLine(getScaledEffectText(item), getNextEffectUpgradeAmount(item));
+  } else if (item.effect.includes("爆擊率")) {
+    pushLine(getScaledEffectText(item), getNextEffectUpgradeAmount(item), "%");
+  } else if (item.effect.includes("爆擊傷害")) {
+    pushLine(getScaledEffectText(item), getNextEffectUpgradeAmount(item), "%");
+  } else {
+    lines.push(getScaledEffectText(item));
+  }
+
+  return lines;
 }
 
 function updateUpgradeDetailText(item) {
@@ -646,15 +968,14 @@ function updateUpgradeDetailText(item) {
   }
 
   const bonus = getUpgradeBonusInfo(item);
-  const sign = bonus.value >= 0 ? "+" : "";
-  const bonusValue = formatEffectAmount(bonus.value);
+  const effectLines = getUpgradeEffectLines(item).join("<br>");
 
   upgradeDetailText.innerHTML = `
     <div>${bonus.stat}</div>
     <div>種類：${item.type}</div>
     <div>稀有度：${item.rarity}</div>
     <div>等級：${item.level || 1} <span class="upgrade-plus">+1</span></div>
-    <div>效果：${getScaledEffectText(item)}<span class="upgrade-plus">${sign}${bonusValue}${bonus.unit || ""}</span></div>
+    <div>效果：<br>${effectLines}</div>
   `;
 }
 
@@ -790,7 +1111,7 @@ function renderForgePicker(slotIndex) {
     const levelLabel = document.createElement("span");
 
     levelLabel.className = "item-level-label";
-    levelLabel.textContent = `Lv${item.level || 1}`;
+    setLevelLabel(levelLabel, item);
     button.appendChild(levelLabel);
     button.addEventListener("click", () => {
       if (forgePickerMode === "upgrade") {
@@ -899,6 +1220,7 @@ function upgradeSelectedItem() {
   }
 
   const item = upgradeSlot.item;
+  const itemBeforeUpgrade = { ...item };
 
   if ((item.level || 1) >= 20) {
     showUpgradeResultText("已經滿等", "fail");
@@ -922,6 +1244,7 @@ function upgradeSelectedItem() {
 
   void upgradeBlacksmithInsideImage.offsetWidth;
   upgradeBlacksmithInsideImage.classList.add("is-forging");
+  playSound(hammerSound);
 
   setTimeout(() => {
     upgradeBlacksmithInsideImage.classList.remove("is-forging");
@@ -929,14 +1252,17 @@ function upgradeSelectedItem() {
     if (Math.random() * 100 < getUpgradeChance(item)) {
       item.effect = getUpgradedEffectText(item);
       item.level = (item.level || 1) + 1;
+      syncEquippedItemUpgrade(itemBeforeUpgrade, item);
       upgradedPendingItem = item;
       upgradeSlot = null;
       setEquipmentSlot(upgradeInputSlot, upgradeInputImage, null, "outputs/空裝備格子圖.png", "升級材料");
       setEquipmentSlot(upgradeResultSlot, upgradeResultImage, item, "outputs/空裝備格子圖.png", "升級結果");
       showUpgradeResultText(`成功：${item.name} Lv${item.level}`, "success");
+      playSound(successSound);
     } else {
       setEquipmentSlot(upgradeResultSlot, upgradeResultImage, null, "outputs/空裝備格子圖.png", "升級結果");
       showUpgradeResultText(`失敗：${item.name} 保持 Lv${item.level || 1}`, "fail");
+      playSound(failSound);
     }
 
     recalculatePlayerStats();
@@ -1008,6 +1334,7 @@ function synthesizeForgeSlots() {
 
   void blacksmithInsideImage.offsetWidth;
   blacksmithInsideImage.classList.add("is-forging");
+  playSound(hammerSound);
 
   setTimeout(() => {
     blacksmithInsideImage.classList.remove("is-forging");
@@ -1026,6 +1353,7 @@ function synthesizeForgeSlots() {
       `${isUpgrade ? "成功" : "失敗"}：${resultItem.name}`,
       isUpgrade ? "success" : "fail"
     );
+    playSound(isUpgrade ? successSound : failSound);
     recalculatePlayerStats();
     updateEquippedImages();
     renderForgeSlots();
@@ -1043,18 +1371,18 @@ function openBagRewardByRarity(rarityIndex) {
   const roll = Math.random() * 100;
 
   if (rarityName === "普通") {
-    if (roll < 30) {
+    if (roll < 25) {
       return { type: "money", amount: 1000, text: "獲得金錢 1000" };
     }
 
     return {
       type: "equipment",
-      item: getRandomEquipment(roll < 90 ? "普通" : "稀有"),
+      item: getRandomEquipment(roll < 85 ? "普通" : "稀有"),
     };
   }
 
   if (rarityName === "稀有") {
-    if (roll < 30) {
+    if (roll < 25) {
       return { type: "money", amount: 2000, text: "獲得金錢 2000" };
     }
 
@@ -1062,6 +1390,38 @@ function openBagRewardByRarity(rarityIndex) {
       type: "equipment",
       item: getRandomEquipment(roll < 65 ? "普通" : "稀有"),
     };
+  }
+
+  if (rarityName === "史詩") {
+    if (roll < 20) {
+      return { type: "money", amount: 5000, text: "獲得金錢 5000" };
+    }
+
+    if (roll < 30) {
+      return { type: "equipment", item: getRandomEquipment("普通") };
+    }
+
+    if (roll < 80) {
+      return { type: "equipment", item: getRandomEquipment("稀有") };
+    }
+
+    return { type: "equipment", item: getRandomEquipment("史詩") };
+  }
+
+  if (rarityName === "傳奇") {
+    if (roll < 10) {
+      return { type: "money", amount: 10000, text: "獲得金錢 10000" };
+    }
+
+    if (roll < 30) {
+      return { type: "equipment", item: getRandomEquipment("稀有") };
+    }
+
+    if (roll < 80) {
+      return { type: "equipment", item: getRandomEquipment("史詩") };
+    }
+
+    return { type: "equipment", item: getRandomEquipment("傳奇") };
   }
 
   return {
@@ -1116,7 +1476,7 @@ function updateInventoryList() {
     const levelLabel = document.createElement("span");
 
     levelLabel.className = "item-level-label";
-    levelLabel.textContent = `Lv${item.level || 1}`;
+    setLevelLabel(levelLabel, item);
     row.appendChild(levelLabel);
     inventoryList.appendChild(row);
   });
@@ -1265,6 +1625,9 @@ function resetBoss() {
 function showResult(title, earnedMoney) {
   isGameOver = true;
   stopEnemyActions();
+  if (title === "失敗") {
+    playSound(failSound);
+  }
   resultTitle.textContent = title;
   resultMoneyText.textContent = `獲得金錢：${earnedMoney}`;
   deathDropText.textContent = title === "失敗" ? "身上裝備已掉落" : "";
@@ -1289,7 +1652,21 @@ function gameOver() {
 }
 
 function tryDeathSave() {
-  return Math.random() * 100 < playerStats.deathSaveRate;
+  if (Math.random() * 100 < playerStats.dodgeRate) {
+    return true;
+  }
+
+  if (battleArmorRate >= 100) {
+    battleArmorRate -= 100;
+    return true;
+  }
+
+  if (battleArmorRate > 0 && Math.random() * 100 < battleArmorRate) {
+    battleArmorRate = 0;
+    return true;
+  }
+
+  return false;
 }
 
 function rollBossBagDrop() {
@@ -1297,7 +1674,7 @@ function rollBossBagDrop() {
     return false;
   }
 
-  const dropChance = Math.min(100, 10 * battleMultiplier);
+  const dropChance = Math.min(100, 20 * battleMultiplier);
 
   if (Math.random() * 100 < dropChance) {
     battleBags.push({ rarityIndex: 0, upgraded: false });
@@ -1410,6 +1787,7 @@ function clickOpenBag() {
 
   const bag = battleBags[openingBagIndex];
   openingBagClicks += 1;
+  playSound(hammerSound);
   upgradeBagByClick(bag, openingBagClicks);
   openBagBtn.classList.remove("is-clicked");
 
@@ -1419,6 +1797,7 @@ function clickOpenBag() {
   if (openingBagClicks >= 4) {
     bag.upgraded = true;
     const reward = collectBagReward(bag);
+    setTimeout(() => playSound(successSound), 180);
 
     openBagImage.src = reward.image;
     openBagImage.alt = reward.alt;
@@ -1469,6 +1848,7 @@ function playKoEffect() {
   stopEnemyActions();
   resetBullet();
   resetPlayerBullet();
+  playSound(successSound);
   enemy.classList.add("is-defeated");
   koEffect.classList.add("is-active");
   koK.classList.add("is-active");
@@ -1635,6 +2015,7 @@ startBtn.addEventListener("click", () => {
 
   showScreen("game");
   playerLane = 1;
+  battleArmorRate = playerStats.armorRate;
   updateHeroPosition();
   startEnemyActions();
 });

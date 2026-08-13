@@ -161,6 +161,42 @@ h1 {
   pointer-events: none;
 }
 
+.level-color-black {
+  color: #111;
+}
+
+.level-color-blue {
+  color: #1d63d8;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.level-color-purple {
+  color: #8b35d6;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.level-color-yellow {
+  color: #d59a00;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.72);
+}
+
+.level-color-rainbow {
+  color: transparent;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background:
+    linear-gradient(90deg, #e53935, #f6b800, #29a646, #2488ff, #9b35d9) text,
+    rgba(0, 0, 0, 0.72);
+  -webkit-background-clip: text, border-box;
+  background-clip: text, border-box;
+}
+
 .equip-weapon {
   top: 0;
   left: 0;
@@ -322,7 +358,6 @@ h2 {
   font-size: 13px;
   font-weight: 800;
   text-align: center;
-  color: #243126;
 }
 
 .item-box {
@@ -581,7 +616,7 @@ h2 {
   position: absolute;
   top: -100px;
   left: 50%;
-  z-index: 2;
+  z-index: 12;
   padding: 4px 10px;
   border-radius: 8px;
   color: #fff;

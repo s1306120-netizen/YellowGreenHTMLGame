@@ -42,6 +42,8 @@ const bossCountText = document.getElementById("bossCountText");
 const multiplierText = document.getElementById("multiplierText");
 const rewardText = document.getElementById("rewardText");
 const moneyText = document.getElementById("moneyText");
+const volumeToggleBtn = document.getElementById("volumeToggleBtn");
+const volumeControls = document.getElementById("volumeControls");
 const bgVolumeInput = document.getElementById("bgVolumeInput");
 const sfxVolumeInput = document.getElementById("sfxVolumeInput");
 const backBtn = document.getElementById("backBtn");
@@ -2231,7 +2233,7 @@ function setSfxVolume(value) {
 function bindMobileVolumeSlider(input, setter) {
   function setFromPointer(event) {
     const rect = input.getBoundingClientRect();
-    const x = event.clientX ?? event.touches?.[0]?.clientX;
+    const x = event.clientX ?? event.touches?.[0]?.clientX ?? event.changedTouches?.[0]?.clientX;
 
     if (x == null) {
       return;
@@ -2241,7 +2243,9 @@ function bindMobileVolumeSlider(input, setter) {
   }
 
   input.addEventListener("input", () => setter(Number(input.value) / 100));
+  input.addEventListener("change", () => setter(Number(input.value) / 100));
   input.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
     input.setPointerCapture?.(event.pointerId);
     setFromPointer(event);
   });
@@ -2250,6 +2254,14 @@ function bindMobileVolumeSlider(input, setter) {
       setFromPointer(event);
     }
   });
+  input.addEventListener("touchstart", (event) => {
+    event.preventDefault();
+    setFromPointer(event);
+  }, { passive: false });
+  input.addEventListener("touchmove", (event) => {
+    event.preventDefault();
+    setFromPointer(event);
+  }, { passive: false });
 }
 
 bindMobileVolumeSlider(bgVolumeInput, setBackgroundVolume);
@@ -2262,6 +2274,10 @@ bgVolumeInput.addEventListener("touchmove", (event) => {
 sfxVolumeInput.addEventListener("touchmove", (event) => {
   event.preventDefault();
 }, { passive: false });
+
+volumeToggleBtn.addEventListener("click", () => {
+  volumeControls.classList.toggle("is-open");
+});
 
 document.addEventListener("touchmove", (event) => {
   if (document.body.classList.contains("is-battle")) {

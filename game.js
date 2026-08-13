@@ -163,7 +163,7 @@ let bubbleWeaponWasTouching = false;
 let bubbleWeaponDodged = false;
 let lastMoveTime = -Infinity;
 let battleArmorRate = 0;
-let savedBossByDifficulty = {};
+let retreatBossByDifficulty = {};
 
 const rewardByDifficulty = {
   "簡單": 100,
@@ -593,7 +593,7 @@ function saveGame() {
     money,
     bgMusicVolume,
     sfxVolume,
-    savedBossByDifficulty,
+    retreatBossByDifficulty,
     inventory,
     equippedItems: Object.fromEntries(
       Object.entries(equippedItems).map(([type, item]) => [type, item])
@@ -627,8 +627,8 @@ function loadGame() {
     money = Number(saveData.money) || 0;
     bgMusicVolume = Math.min(1, Math.max(0, Number(saveData.bgMusicVolume ?? bgMusicVolume)));
     sfxVolume = Math.min(1, Math.max(0, Number(saveData.sfxVolume ?? sfxVolume)));
-    savedBossByDifficulty = saveData.savedBossByDifficulty && typeof saveData.savedBossByDifficulty === "object"
-      ? saveData.savedBossByDifficulty
+    retreatBossByDifficulty = saveData.retreatBossByDifficulty && typeof saveData.retreatBossByDifficulty === "object"
+      ? saveData.retreatBossByDifficulty
       : {};
     bgVolumeInput.value = Math.round(bgMusicVolume * 100);
     sfxVolumeInput.value = Math.round(sfxVolume * 100);
@@ -1786,7 +1786,7 @@ function resetGameOver() {
 
 function resetBoss() {
   const availableBosses = bossData.filter((boss) => boss.difficulty === difficultySelect.value);
-  const savedBossName = savedBossByDifficulty[difficultySelect.value];
+  const savedBossName = retreatBossByDifficulty[difficultySelect.value];
   const firstBoss = availableBosses.find((boss) => boss.name === savedBossName)
     || availableBosses[Math.floor(Math.random() * availableBosses.length)];
 
@@ -1799,7 +1799,7 @@ function resetBoss() {
   battleReward = getBattleReward();
   currentBossName = firstBoss.name;
   currentBossDefense = firstBoss.defense;
-  savedBossByDifficulty[difficultySelect.value] = currentBossName;
+  delete retreatBossByDifficulty[difficultySelect.value];
   saveGame();
   hasBubbleWeaponAttacked = false;
   bossMaxHp = Math.round(firstBoss.hp * battleMultiplier);
@@ -2070,8 +2070,6 @@ function goToNextBoss() {
   currentBossNumber += 1;
   currentBossName = nextBoss.name;
   currentBossDefense = nextBoss.defense;
-  savedBossByDifficulty[difficultySelect.value] = currentBossName;
-  saveGame();
   hasBubbleWeaponAttacked = false;
   bossMaxHp = Math.round(nextBoss.hp * battleMultiplier);
   bossHp = bossMaxHp;
@@ -2430,6 +2428,8 @@ closeSaveEditorBtn.addEventListener("click", () => {
 });
 
 backBtn.addEventListener("click", () => {
+  retreatBossByDifficulty[difficultySelect.value] = currentBossName;
+  saveGame();
   stopEnemyActions();
   resetBullet();
   resetPlayerBullet();

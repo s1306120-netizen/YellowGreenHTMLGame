@@ -95,6 +95,14 @@ const upgradeResultText = document.getElementById("upgradeResultText");
 const upgradeMoneyText = document.getElementById("upgradeMoneyText");
 const upgradeBackBtn = document.getElementById("upgradeBackBtn");
 
+openBagImage.addEventListener("error", () => {
+  openBagImage.src = "outputs/空裝備格子圖.png";
+});
+
+enemy.addEventListener("error", () => {
+  enemy.src = "outputs/小豬.png";
+});
+
 let playerLane = 1;
 let bulletLane = 1;
 let playerBulletLane = 1;
@@ -248,8 +256,13 @@ let sfxGain = null;
 let successGain = null;
 let isAudioRouted = false;
 const useWebAudioVolume = window.matchMedia?.("(pointer: coarse)")?.matches || false;
+let areAudioElementsUnlocked = false;
 lobbyMusic.loop = true;
 battleMusic.loop = true;
+[lobbyMusic, battleMusic, hammerSound, failSound, successSound].forEach((audio) => {
+  audio.preload = "auto";
+  audio.load();
+});
 
 function applyVolumeSettings() {
   const currentBgVolume = currentScreenName === "blacksmith" ? bgMusicVolume / 4 : bgMusicVolume;
@@ -327,6 +340,28 @@ function playSound(sound) {
   sound.play().catch(() => {});
 }
 
+function unlockAudioElements() {
+  if (areAudioElementsUnlocked) {
+    return;
+  }
+
+  areAudioElementsUnlocked = true;
+  [hammerSound, failSound, successSound].forEach((sound) => {
+    const wasMuted = sound.muted;
+
+    sound.muted = true;
+    sound.play()
+      .then(() => {
+        sound.pause();
+        sound.currentTime = 0;
+        sound.muted = wasMuted;
+      })
+      .catch(() => {
+        sound.muted = wasMuted;
+      });
+  });
+}
+
 function switchMusic(screen) {
   currentScreenName = screen;
   applyVolumeSettings();
@@ -351,17 +386,33 @@ function switchMusic(screen) {
 
 document.addEventListener("pointerdown", () => {
   resumeWebAudio();
+  unlockAudioElements();
 
   if (lobbyScreen.classList.contains("screen-active")) {
     playMusic(lobbyMusic);
   }
 }, { once: true });
 
+document.addEventListener("touchstart", () => {
+  resumeWebAudio();
+  unlockAudioElements();
+}, { once: true, passive: true });
+
 const enemyImages = [
   "outputs/小豬(準備攻擊左).png?v=2",
   "outputs/小豬(準備攻擊中).png?v=3",
   "outputs/小豬(準備攻擊右).png?v=2",
 ];
+
+[
+  "outputs/K.png",
+  "outputs/O.png",
+  "outputs/錢.png",
+  "outputs/空裝備格子圖.png",
+  ...enemyImages,
+  ...bagRarities.map((bag) => bag.image),
+  ...equipmentData.map((item) => item.image),
+].forEach(preloadImage);
 
 function showScreen(screen) {
   document.body.classList.toggle("is-battle", screen === "game");
@@ -413,6 +464,11 @@ function updateHeroStatsList() {
 
 function getRandomItem(items) {
   return items[Math.floor(Math.random() * items.length)];
+}
+
+function preloadImage(path) {
+  const image = new Image();
+  image.src = path;
 }
 
 function getLevelColorClass(level) {
@@ -1531,6 +1587,16 @@ function collectBagReward(bag) {
     };
   }
 
+  if (!reward.item || !reward.item.image) {
+    pendingMoney += 1000;
+    return {
+      text: "獲得金錢 1000",
+      image: "outputs/錢.png",
+      alt: "錢",
+      scale: 1.2,
+    };
+  }
+
   addEquipmentToInventory(reward.item);
   return {
     text: `獲得裝備：${reward.item.name}`,
@@ -1933,10 +1999,17 @@ function finishBossDefeat() {
 
 function playKoEffect() {
   isKoPlaying = true;
+  clearTimeout(koTimerK);
+  clearTimeout(koTimerEnd);
   stopEnemyActions();
   resetBullet();
   resetPlayerBullet();
   playSound(successSound);
+  koEffect.classList.remove("is-active");
+  koK.classList.remove("is-active");
+  koO.classList.remove("is-active");
+
+  void koEffect.offsetWidth;
   enemy.classList.add("is-defeated");
   koEffect.classList.add("is-active");
   koK.classList.add("is-active");

@@ -82,14 +82,15 @@ h1 {
   top: 46px;
   right: 0;
   display: grid;
-  gap: 4px;
-  width: 150px;
-  padding: 8px;
+  gap: 8px;
+  width: 190px;
+  padding: 10px;
   border-radius: 8px;
   background: rgba(36, 49, 38, 0.12);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   text-align: left;
+  z-index: 30;
 }
 
 .volume-controls label {
@@ -99,6 +100,18 @@ h1 {
 
 .volume-controls input {
   width: 100%;
+  height: 34px;
+  touch-action: none;
+}
+
+.volume-controls input::-webkit-slider-thumb {
+  width: 28px;
+  height: 28px;
+}
+
+.volume-controls input::-moz-range-thumb {
+  width: 28px;
+  height: 28px;
 }
 
 .bag-button {

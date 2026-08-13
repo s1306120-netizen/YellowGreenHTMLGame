@@ -2209,8 +2209,9 @@ window.addEventListener("keyup", (event) => {
   }
 });
 
-bgVolumeInput.addEventListener("input", () => {
-  bgMusicVolume = Number(bgVolumeInput.value) / 100;
+function setBackgroundVolume(value) {
+  bgMusicVolume = Math.min(1, Math.max(0, value));
+  bgVolumeInput.value = Math.round(bgMusicVolume * 100);
   applyVolumeSettings();
 
   if (blacksmithScreen.classList.contains("screen-active")) {
@@ -2218,13 +2219,49 @@ bgVolumeInput.addEventListener("input", () => {
   }
 
   saveGame();
-});
+}
 
-sfxVolumeInput.addEventListener("input", () => {
-  sfxVolume = Number(sfxVolumeInput.value) / 100;
+function setSfxVolume(value) {
+  sfxVolume = Math.min(1, Math.max(0, value));
+  sfxVolumeInput.value = Math.round(sfxVolume * 100);
   applyVolumeSettings();
   saveGame();
-});
+}
+
+function bindMobileVolumeSlider(input, setter) {
+  function setFromPointer(event) {
+    const rect = input.getBoundingClientRect();
+    const x = event.clientX ?? event.touches?.[0]?.clientX;
+
+    if (x == null) {
+      return;
+    }
+
+    setter((x - rect.left) / rect.width);
+  }
+
+  input.addEventListener("input", () => setter(Number(input.value) / 100));
+  input.addEventListener("pointerdown", (event) => {
+    input.setPointerCapture?.(event.pointerId);
+    setFromPointer(event);
+  });
+  input.addEventListener("pointermove", (event) => {
+    if (event.buttons > 0) {
+      setFromPointer(event);
+    }
+  });
+}
+
+bindMobileVolumeSlider(bgVolumeInput, setBackgroundVolume);
+bindMobileVolumeSlider(sfxVolumeInput, setSfxVolume);
+
+bgVolumeInput.addEventListener("touchmove", (event) => {
+  event.preventDefault();
+}, { passive: false });
+
+sfxVolumeInput.addEventListener("touchmove", (event) => {
+  event.preventDefault();
+}, { passive: false });
 
 document.addEventListener("touchmove", (event) => {
   if (document.body.classList.contains("is-battle")) {

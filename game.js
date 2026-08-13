@@ -61,9 +61,11 @@ const arena = document.querySelector(".arena");
 const hero = document.getElementById("hero");
 const enemy = document.getElementById("enemy");
 const bullet = document.getElementById("bullet");
+const bubbleWeapon = document.getElementById("bubbleWeapon");
 const playerBullet = document.getElementById("playerBullet");
 const bossHpText = document.getElementById("bossHpText");
 const damageText = document.getElementById("damageText");
+const bubbleDebugText = document.getElementById("bubbleDebugText");
 const bagDropText = document.getElementById("bagDropText");
 const openBagBtn = document.getElementById("openBagBtn");
 const openBagImage = document.getElementById("openBagImage");
@@ -113,6 +115,7 @@ let currentBossName = "小豬";
 let currentBossNumber = 1;
 let totalBossCount = 1;
 let battleMultiplier = 1;
+let hasBubbleWeaponAttacked = false;
 let money = 0;
 let battleReward = 100;
 let pendingMoney = 0;
@@ -149,13 +152,18 @@ let koTimerK = null;
 let koTimerEnd = null;
 let hitAnimation = null;
 let playerHitAnimation = null;
+let bubbleWeaponContactTimer = null;
+let bubbleSpinStartTime = 0;
 let isGameOver = false;
 let isKoPlaying = false;
 let isOpeningBagReward = false;
 let canPlayerDamage = false;
 let isMoving = false;
+let bubbleWeaponWasTouching = false;
+let bubbleWeaponDodged = false;
 let lastMoveTime = -Infinity;
 let battleArmorRate = 0;
+let savedBossByDifficulty = {};
 
 const rewardByDifficulty = {
   "簡單": 100,
@@ -176,6 +184,7 @@ const upgradeCosts = [
 
 const bossData = [
   { name: "小豬", difficulty: "簡單", hp: 100, defense: 0 },
+  { name: "泡泡", difficulty: "簡單", hp: 100, defense: 5 },
 ];
 
 const bagRarities = [
@@ -186,13 +195,13 @@ const bagRarities = [
 ];
 
 const equipmentData = [
-  { name: "破舊木劍", type: "武器", rarity: "普通", effect: "攻擊力+5", image: "outputs/破舊木劍圖(武器).png" },
-  { name: "標準木劍", type: "武器", rarity: "普通", effect: "攻擊力+10", image: "outputs/標準木劍圖(武器).png" },
-  { name: "短石劍", type: "武器", rarity: "稀有", effect: "攻擊力+15", image: "outputs/短石劍圖(武器).png" },
-  { name: "鋒利石劍", type: "武器", rarity: "稀有", effect: "攻擊力+20", image: "outputs/鋒利石劍圖(武器).png" },
-  { name: "鑽石匕首", type: "武器", rarity: "史詩", effect: "攻擊力+30", image: "outputs/鑽石匕首圖(武器).png" },
-  { name: "鋒利長鑽劍", type: "武器", rarity: "史詩", effect: "攻擊力+40", image: "outputs/鋒利長鑽劍圖(武器).png" },
-  { name: "熔岩烈劍", type: "武器", rarity: "傳奇", effect: "攻擊力+80", image: "outputs/熔岩烈劍圖(武器).png" },
+  { name: "破舊木劍", type: "武器", rarity: "普通", effect: "攻擊力+5 破防+0", image: "outputs/破舊木劍圖(武器).png" },
+  { name: "標準木劍", type: "武器", rarity: "普通", effect: "攻擊力+10 破防+1", image: "outputs/標準木劍圖(武器).png" },
+  { name: "短石劍", type: "武器", rarity: "稀有", effect: "攻擊力+15 破防+3", image: "outputs/短石劍圖(武器).png" },
+  { name: "鋒利石劍", type: "武器", rarity: "稀有", effect: "攻擊力+20 破防+5", image: "outputs/鋒利石劍圖(武器).png" },
+  { name: "鑽石匕首", type: "武器", rarity: "史詩", effect: "攻擊力+30 破防+10", image: "outputs/鑽石匕首圖(武器).png" },
+  { name: "鋒利長鑽劍", type: "武器", rarity: "史詩", effect: "攻擊力+40 破防+15", image: "outputs/鋒利長鑽劍圖(武器).png" },
+  { name: "熔岩烈劍", type: "武器", rarity: "傳奇", effect: "攻擊力+80 破防+20", image: "outputs/熔岩烈劍圖(武器).png" },
   { name: "皮革背心", type: "護甲", rarity: "普通", effect: "8%護甲 0%閃避", image: "outputs/皮革背心圖(護甲).png" },
   { name: "皮革護甲", type: "護甲", rarity: "普通", effect: "12%護甲 0%閃避", image: "outputs/皮革護甲圖(護甲).png" },
   { name: "鋼鐵背心", type: "護甲", rarity: "稀有", effect: "20%護甲 1%閃避", image: "outputs/鋼鐵背心圖(護甲).png" },
@@ -584,6 +593,7 @@ function saveGame() {
     money,
     bgMusicVolume,
     sfxVolume,
+    savedBossByDifficulty,
     inventory,
     equippedItems: Object.fromEntries(
       Object.entries(equippedItems).map(([type, item]) => [type, item])
@@ -617,6 +627,9 @@ function loadGame() {
     money = Number(saveData.money) || 0;
     bgMusicVolume = Math.min(1, Math.max(0, Number(saveData.bgMusicVolume ?? bgMusicVolume)));
     sfxVolume = Math.min(1, Math.max(0, Number(saveData.sfxVolume ?? sfxVolume)));
+    savedBossByDifficulty = saveData.savedBossByDifficulty && typeof saveData.savedBossByDifficulty === "object"
+      ? saveData.savedBossByDifficulty
+      : {};
     bgVolumeInput.value = Math.round(bgMusicVolume * 100);
     sfxVolumeInput.value = Math.round(sfxVolume * 100);
     applyVolumeSettings();
@@ -1710,8 +1723,21 @@ function getBattleReward() {
 
 function resetBullet() {
   bullet.classList.remove("is-active");
-  bullet.style.setProperty("--bullet-y", "8px");
+  bullet.style.setProperty("--bullet-y", "7px");
   bullet.style.setProperty("--bullet-lane", bulletLane);
+}
+
+function resetBubbleWeapon(clearDebug = true) {
+  clearTimeout(bubbleWeaponContactTimer);
+  bubbleWeaponContactTimer = null;
+  bubbleWeapon.style.visibility = "hidden";
+  bubbleWeapon.style.animationPlayState = "paused";
+  bubbleWeapon.classList.remove("is-warning", "is-attacking-left", "is-attacking-right", "is-spinning");
+  bubbleWeaponWasTouching = false;
+  bubbleWeaponDodged = false;
+  if (clearDebug) {
+    bubbleDebugText.textContent = "";
+  }
 }
 
 function resetPlayerBullet() {
@@ -1760,7 +1786,9 @@ function resetGameOver() {
 
 function resetBoss() {
   const availableBosses = bossData.filter((boss) => boss.difficulty === difficultySelect.value);
-  const firstBoss = availableBosses[0];
+  const savedBossName = savedBossByDifficulty[difficultySelect.value];
+  const firstBoss = availableBosses.find((boss) => boss.name === savedBossName)
+    || availableBosses[Math.floor(Math.random() * availableBosses.length)];
 
   if (!firstBoss) {
     return false;
@@ -1771,6 +1799,9 @@ function resetBoss() {
   battleReward = getBattleReward();
   currentBossName = firstBoss.name;
   currentBossDefense = firstBoss.defense;
+  savedBossByDifficulty[difficultySelect.value] = currentBossName;
+  saveGame();
+  hasBubbleWeaponAttacked = false;
   bossMaxHp = Math.round(firstBoss.hp * battleMultiplier);
   currentBossNumber = 1;
   bossHp = bossMaxHp;
@@ -2006,8 +2037,13 @@ function playKoEffect() {
   isKoPlaying = true;
   clearTimeout(koTimerK);
   clearTimeout(koTimerEnd);
+  clearTimeout(bubbleWeaponContactTimer);
+  if (currentBossDefense === 5) {
+    bubbleWeapon.style.animationPlayState = "paused";
+  }
   stopEnemyActions();
   resetBullet();
+  resetBubbleWeapon();
   resetPlayerBullet();
   playSound(successSound);
   koEffect.classList.remove("is-active");
@@ -2024,11 +2060,20 @@ function playKoEffect() {
     koO.classList.add("is-active");
   }, 280);
 
-  koTimerEnd = setTimeout(finishBossDefeat, 900);
+  koTimerEnd = setTimeout(finishBossDefeat, 1000);
 }
 
 function goToNextBoss() {
+  const availableBosses = bossData.filter((boss) => boss.difficulty === difficultySelect.value);
+  const nextBoss = availableBosses[Math.floor(Math.random() * availableBosses.length)];
+
   currentBossNumber += 1;
+  currentBossName = nextBoss.name;
+  currentBossDefense = nextBoss.defense;
+  savedBossByDifficulty[difficultySelect.value] = currentBossName;
+  saveGame();
+  hasBubbleWeaponAttacked = false;
+  bossMaxHp = Math.round(nextBoss.hp * battleMultiplier);
   bossHp = bossMaxHp;
   enemy.classList.remove("is-defeated");
   enemy.src = `outputs/${currentBossName}.png`;
@@ -2072,6 +2117,73 @@ function watchBulletHit() {
   }
 }
 
+function checkBubbleWeaponHit() {
+  const weaponRect = bubbleWeapon.getBoundingClientRect();
+  const heroRect = hero.getBoundingClientRect();
+  const matrix = getComputedStyle(bubbleWeapon).transform;
+  const values = matrix.match(/^matrix\(([^)]+)\)$/)?.[1].split(",").map(Number);
+  const angle = values ? Math.atan2(values[1], values[0]) : 0;
+  const axisX = { x: Math.cos(angle), y: Math.sin(angle) };
+  const axisY = { x: -axisX.y, y: axisX.x };
+  const weaponCenterX = weaponRect.left + weaponRect.width / 2;
+  const weaponCenterY = weaponRect.top + weaponRect.height / 2;
+  const heroCenterX = heroRect.left + heroRect.width / 2;
+  const heroCenterY = heroRect.top + heroRect.height / 2;
+  const dx = heroCenterX - weaponCenterX;
+  const dy = heroCenterY - weaponCenterY;
+  const weaponHalfWidth = bubbleWeapon.offsetWidth / 2;
+  const weaponHalfHeight = bubbleWeapon.offsetHeight / 2;
+  const heroHalfWidth = heroRect.width / 2;
+  const heroHalfHeight = heroRect.height / 2;
+  const overlapsWeaponAxes =
+    Math.abs(dx * axisX.x + dy * axisX.y) <= weaponHalfWidth + heroHalfWidth * Math.abs(axisX.x) + heroHalfHeight * Math.abs(axisX.y) &&
+    Math.abs(dx * axisY.x + dy * axisY.y) <= weaponHalfHeight + heroHalfWidth * Math.abs(axisY.x) + heroHalfHeight * Math.abs(axisY.y);
+  const overlapsHeroAxes =
+    Math.abs(dx) <= heroHalfWidth + weaponHalfWidth * Math.abs(axisX.x) + weaponHalfHeight * Math.abs(axisY.x) &&
+    Math.abs(dy) <= heroHalfHeight + weaponHalfWidth * Math.abs(axisX.y) + weaponHalfHeight * Math.abs(axisY.y);
+  const isHit = overlapsWeaponAxes && overlapsHeroAxes;
+
+  if (isHit) {
+    if (!bubbleWeaponWasTouching) {
+      bubbleWeaponWasTouching = true;
+      bubbleWeaponDodged = false;
+    }
+
+    if (isMoving) {
+      bubbleWeaponDodged = true;
+    }
+
+    return;
+  }
+
+  if (!bubbleWeaponWasTouching) {
+    return;
+  }
+
+  bubbleWeaponWasTouching = false;
+  if (bubbleWeaponDodged) {
+    bubbleWeaponDodged = false;
+    return;
+  }
+
+  if (!tryDeathSave()) {
+    gameOver();
+  }
+}
+
+function watchBubbleWeaponHit() {
+  if (isGameOver || currentBossDefense !== 5) {
+    hitAnimation = null;
+    return;
+  }
+
+  checkBubbleWeaponHit();
+
+  if (!isGameOver) {
+    hitAnimation = requestAnimationFrame(watchBubbleWeaponHit);
+  }
+}
+
 function damageBoss() {
   if (!canPlayerDamage || isKoPlaying) {
     return;
@@ -2099,6 +2211,11 @@ function shootBullet() {
     return;
   }
 
+  if (currentBossName === "泡泡") {
+    shootBubbleWeapon();
+    return;
+  }
+
   bulletLane = Math.floor(Math.random() * 3);
   enemy.src = enemyImages[bulletLane];
   resetBullet();
@@ -2114,6 +2231,17 @@ function shootBullet() {
   }, 500);
 }
 
+function shootBubbleWeapon() {
+  const weaponLeft = "50%";
+
+  enemy.src = "outputs/\u6ce1\u6ce1.png";
+  bubbleWeapon.style.visibility = "visible";
+  bubbleWeapon.style.animationPlayState = "running";
+  bubbleWeapon.style.setProperty("--bubble-weapon-left", weaponLeft);
+  bubbleDebugText.textContent = "";
+  bubbleSpinStartTime = performance.now();
+  hitAnimation = requestAnimationFrame(watchBubbleWeaponHit);
+}
 function shootPlayerBullet() {
   if (isGameOver || !canPlayerDamage) {
     return;
@@ -2136,10 +2264,14 @@ function startEnemyActions() {
   stopEnemyActions();
   resetBullet();
   enemy.src = `outputs/${currentBossName}.png`;
-  enemyAttackDelayTimer = setTimeout(() => {
-    shootBullet();
-    bulletTimer = setInterval(shootBullet, 1600);
-  }, 1000);
+  if (currentBossDefense === 5) {
+    enemyAttackDelayTimer = setTimeout(shootBubbleWeapon, 1000);
+  } else {
+    enemyAttackDelayTimer = setTimeout(() => {
+      shootBullet();
+      bulletTimer = setInterval(shootBullet, 1600);
+    }, 1000);
+  }
   playerAttackDelayTimer = setTimeout(() => {
     canPlayerDamage = true;
     playerAttackTimer = setInterval(shootPlayerBullet, 1000);
@@ -2166,6 +2298,7 @@ function stopEnemyActions() {
   playerBulletEndTimer = null;
   koTimerK = null;
   koTimerEnd = null;
+  resetBubbleWeapon(false);
   hitAnimation = null;
   playerHitAnimation = null;
   canPlayerDamage = false;

@@ -703,6 +703,21 @@ h2 {
   color: #d58a00;
 }
 
+.bubble-debug-text {
+  position: absolute;
+  top: 115px;
+  left: 50%;
+  z-index: 60;
+  padding: 4px 12px;
+  border-radius: 8px;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.7);
+  font-size: 22px;
+  font-weight: 700;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
 .bag-drop-text {
   position: absolute;
   top: 190px;
@@ -741,7 +756,7 @@ h2 {
   position: relative;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  overflow: hidden;
+  overflow: visible;
   border: 3px solid #6f5b37;
   border-radius: 8px;
   background: linear-gradient(#dceeb3, #c4dc89);
@@ -803,6 +818,47 @@ h2 {
 
 .bullet.is-active {
   opacity: 1;
+}
+
+.bubble-weapon {
+  position: absolute;
+  left: var(--bubble-weapon-left, 50%);
+  top: -170px;
+  width: 180px;
+  height: 800px;
+  z-index: 40;
+  opacity: 1;
+  object-fit: contain;
+  transform: translateX(-50%) rotate(0deg) scaleY(1);
+  transform-origin: center top;
+  animation: bubble-spin 3800ms linear infinite;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+.bubble-weapon.is-warning {
+  opacity: 1;
+  transform: translateX(-50%) rotate(0deg) scaleY(1);
+}
+
+.bubble-weapon.is-attacking-left,
+.bubble-weapon.is-attacking-right {
+  opacity: 1;
+}
+
+@keyframes bubble-spin {
+  0% {
+    transform: translateX(-50%) rotate(270deg) scaleY(1);
+  }
+
+  47.37% {
+    transform: translateX(-50%) rotate(450deg) scaleY(1);
+  }
+
+  100% {
+    transform: translateX(-50%) rotate(450deg) scaleY(1);
+  }
 }
 
 .player-bullet {

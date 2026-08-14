@@ -285,6 +285,7 @@ let isAudioRouted = false;
 const useWebAudioVolume = window.matchMedia?.("(pointer: coarse)")?.matches || false;
 let areAudioElementsUnlocked = false;
 let bubbleSoundTimer = null;
+const soundLastPlayedAt = new WeakMap();
 lobbyMusic.loop = true;
 battleMusic.loop = true;
 [lobbyMusic, battleMusic, hammerSound, failSound, successSound, aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((audio) => {
@@ -365,6 +366,14 @@ function playMusic(music) {
 }
 
 function playSound(sound) {
+  const now = performance.now();
+  const lastPlayedAt = soundLastPlayedAt.get(sound) || -Infinity;
+
+  if (now - lastPlayedAt < 180) {
+    return;
+  }
+
+  soundLastPlayedAt.set(sound, now);
   resumeWebAudio();
   applyVolumeSettings();
   const soundClone = sound.cloneNode();
@@ -377,6 +386,14 @@ function playSound(sound) {
 }
 
 function playSoundThen(firstSound, secondSound) {
+  const now = performance.now();
+  const lastPlayedAt = soundLastPlayedAt.get(firstSound) || -Infinity;
+
+  if (now - lastPlayedAt < 180) {
+    return;
+  }
+
+  soundLastPlayedAt.set(firstSound, now);
   resumeWebAudio();
   applyVolumeSettings();
   const firstClone = firstSound.cloneNode();

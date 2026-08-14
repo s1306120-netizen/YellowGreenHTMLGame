@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>黃葉綠豆</title>
+  <title>愛的家の小遊戲</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -30,7 +30,7 @@
           <input id="sfxVolumeInput" type="range" min="0" max="100" value="85">
         </label>
       </div>
-      <h1>黃葉綠豆</h1>
+      <h1>愛的家の小遊戲</h1>
       <div class="lobby-hero-wrap">
         <img id="equippedWeapon" class="lobby-equipment equip-weapon" src="outputs/空武器圖.png" alt="空武器">
         <span id="equippedWeaponLevel" class="lobby-equipment-level equip-weapon-level"></span>
@@ -187,8 +187,6 @@
     <section id="game" class="screen">
       <div class="battle-layout">
         <div id="bossHpText" class="boss-hp-text">
-          <div>BOSS數量1/1</div>
-          <div>小豬</div>
           <div>HP:100/100</div>
         </div>
         <div id="damageText" class="damage-text"></div>
@@ -200,6 +198,13 @@
           <div class="lane" data-lane="0">左</div>
           <div class="lane" data-lane="1">中</div>
           <div class="lane" data-lane="2">右</div>
+          <div class="lane" data-lane="3"></div>
+          <div class="lane" data-lane="4"></div>
+          <div class="lane" data-lane="5"></div>
+          <div class="lane" data-lane="6"></div>
+          <div class="lane" data-lane="7"></div>
+          <div class="lane" data-lane="8"></div>
+          <div id="bossIntro" class="boss-intro"></div>
           <img id="bullet" class="bullet" src="outputs/小豬的子彈.png" alt="小豬的子彈">
           <img id="bubbleWeapon" class="bubble-weapon" src="outputs/泡泡武器圖.png" alt="泡泡武器">
           <img id="playerBullet" class="player-bullet" src="outputs/玩家子彈.png" alt="玩家子彈">
@@ -208,6 +213,10 @@
 
         <div class="battle-footer">
           <button id="backBtn" class="small-button" type="button">回大廳</button>
+          <div class="battle-armor">
+            <img src="outputs/護甲值圖.png" alt="護甲">
+            <span id="battleArmorText">+0%護甲</span>
+          </div>
         </div>
 
         <div id="result" class="result-modal">
@@ -234,6 +243,7 @@
           <img id="openBagImage" src="outputs/普通袋子.png" alt="普通袋子">
         </button>
         <div id="openBagReward" class="open-bag-reward"></div>
+        <div id="openBagRarity" class="open-bag-rarity"></div>
         <div id="openBagProgress" class="open-bag-progress">袋子 1/1　點擊 0/4</div>
       </div>
     </section>

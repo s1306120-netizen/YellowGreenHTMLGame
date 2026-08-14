@@ -703,6 +703,10 @@ h2 {
   color: #d58a00;
 }
 
+.damage-text.is-success {
+  color: #218236;
+}
+
 .bubble-debug-text {
   position: absolute;
   top: 115px;
@@ -756,6 +760,7 @@ h2 {
   position: relative;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
   overflow: visible;
   border: 3px solid #6f5b37;
   border-radius: 8px;
@@ -765,7 +770,52 @@ h2 {
 
 .battle-footer {
   display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+}
+
+.battle-footer .small-button {
+  justify-self: start;
+}
+
+.battle-armor {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: 6px;
+  font-weight: 700;
+}
+
+.battle-armor img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+}
+
+.boss-hp-bar {
+  position: relative;
+  width: min(280px, 72vw);
+  height: 26px;
+  overflow: hidden;
+  border: 2px solid #4d3d28;
+  border-radius: 8px;
+  background: #4b3434;
+}
+
+.boss-hp-fill {
+  height: 100%;
+  background: #c94d4d;
+  transition: width 180ms ease;
+}
+
+.boss-hp-bar span {
+  position: absolute;
+  inset: 0;
+  display: grid;
   place-items: center;
+  color: #fff;
+  font-weight: 700;
+  text-shadow: 1px 1px 0 #2c1d1d;
 }
 
 .lane {
@@ -773,10 +823,50 @@ h2 {
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 16px;
+  font-size: 0;
   color: rgba(36, 49, 38, 0.5);
   border-left: 1px solid rgba(111, 91, 55, 0.25);
   border-right: 1px solid rgba(111, 91, 55, 0.25);
+  border-bottom: 1px solid rgba(111, 91, 55, 0.25);
   user-select: none;
+}
+
+.boss-intro {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  color: #fff8d7;
+  font-size: 68px;
+  font-weight: 700;
+  text-shadow: 2px 2px 0 #4d3d28;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.boss-intro.is-active {
+  animation: boss-intro-fade 900ms ease both;
+}
+
+.boss-intro.is-name {
+  animation: boss-intro-name 800ms ease both;
+}
+
+@keyframes boss-intro-fade {
+  0% { opacity: 0; transform: scale(0.7); }
+  25% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.15); }
+}
+
+@keyframes boss-intro-name {
+  0% { opacity: 0; transform: scale(0.8); }
+  25% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.08); }
+}
+
+.enemy.is-intro-hidden {
+  visibility: hidden;
 }
 
 .bullet,
@@ -877,11 +967,13 @@ h2 {
 /*主角*/
 .hero {
   left: calc((100% / 3) * var(--lane) + (100% / 6));
-  bottom: 100px;
+  top: var(--row-top, 83.333%);
+  bottom: auto;
   width: 92px;
   max-width: 27%;
   z-index: 3;
-  transition: left 140ms ease;
+  transform: translate(-50%, -50%);
+  transition: left 140ms ease, top 140ms ease;
 }
 
 .hero.is-dead {
@@ -1004,6 +1096,17 @@ h2 {
   font-size: 20px;
   font-weight: 500;
 }
+
+.open-bag-rarity {
+  min-height: 28px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.open-bag-rarity.rarity-0 { color: #2f8a3a; }
+.open-bag-rarity.rarity-1 { color: #2563c9; }
+.open-bag-rarity.rarity-2 { color: #7b3fb2; }
+.open-bag-rarity.rarity-3 { color: #c68a12; }
 
 .open-bag-reward {
   min-height: 28px;

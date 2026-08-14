@@ -47,6 +47,7 @@ const volumeControls = document.getElementById("volumeControls");
 const bgVolumeInput = document.getElementById("bgVolumeInput");
 const sfxVolumeInput = document.getElementById("sfxVolumeInput");
 const backBtn = document.getElementById("backBtn");
+const battleArmorText = document.getElementById("battleArmorText");
 const resultBackBtn = document.getElementById("resultBackBtn");
 const resultModal = document.getElementById("result");
 const resultTitle = document.getElementById("resultTitle");
@@ -58,6 +59,7 @@ const koEffect = document.getElementById("koEffect");
 const koK = document.getElementById("koK");
 const koO = document.getElementById("koO");
 const arena = document.querySelector(".arena");
+const bossIntro = document.getElementById("bossIntro");
 const hero = document.getElementById("hero");
 const enemy = document.getElementById("enemy");
 const bullet = document.getElementById("bullet");
@@ -70,6 +72,7 @@ const bagDropText = document.getElementById("bagDropText");
 const openBagBtn = document.getElementById("openBagBtn");
 const openBagImage = document.getElementById("openBagImage");
 const openBagReward = document.getElementById("openBagReward");
+const openBagRarity = document.getElementById("openBagRarity");
 const openBagProgress = document.getElementById("openBagProgress");
 const blacksmithInsideImage = document.getElementById("blacksmithInsideImage");
 const upgradeBlacksmithInsideImage = document.getElementById("upgradeBlacksmithInsideImage");
@@ -106,6 +109,7 @@ enemy.addEventListener("error", () => {
 });
 
 let playerLane = 1;
+let playerRow = 0;
 let bulletLane = 1;
 let playerBulletLane = 1;
 let bossHp = 100;
@@ -139,6 +143,7 @@ let isForging = false;
 let openingBagIndex = 0;
 let openingBagClicks = 0;
 let touchStartX = 0;
+let touchStartY = 0;
 let isKey6Down = false;
 let isKey7Down = false;
 let bulletTimer = null;
@@ -150,6 +155,7 @@ let playerAttackDelayTimer = null;
 let playerBulletEndTimer = null;
 let koTimerK = null;
 let koTimerEnd = null;
+let bossIntroTimer = null;
 let hitAnimation = null;
 let playerHitAnimation = null;
 let bubbleWeaponContactTimer = null;
@@ -439,14 +445,21 @@ function showScreen(screen) {
 
 function updateHeroPosition() {
   hero.style.setProperty("--lane", playerLane);
+  hero.style.setProperty("--row-top", `${(2 - playerRow) * (100 / 3) + (100 / 6)}%`);
 }
 
 function updateBossHpText() {
+  const hpPercent = bossMaxHp > 0 ? (bossHp / bossMaxHp) * 100 : 0;
   bossHpText.innerHTML = `
-    <div>BOSS數量${currentBossNumber}/${totalBossCount}</div>
-    <div>${currentBossName}</div>
-    <div>HP:${bossHp}/${bossMaxHp}</div>
+    <div class="boss-hp-bar">
+      <div class="boss-hp-fill" style="width: ${hpPercent}%"></div>
+      <span>HP:${bossHp}/${bossMaxHp}</span>
+    </div>
   `;
+}
+
+function updateBattleArmor() {
+  battleArmorText.textContent = `+${formatEffectAmount(battleArmorRate)}%護甲`;
 }
 
 function updateDifficultyInfo() {
@@ -703,10 +716,6 @@ function getScaledEffectAmount(item) {
 }
 
 function getNextEffectUpgradeAmount(item) {
-  if (item.effect.includes("移動冷卻")) {
-    return 0.05;
-  }
-
   if (item.type === "武器") {
     return { "普通": 1, "稀有": 3, "史詩": 5, "傳奇": 10 }[item.rarity] || 1;
   }
@@ -1067,10 +1076,9 @@ function getUpgradeEffectLines(item) {
       pushLine(`攻擊力+${attackMatch[1]}`, getNextEffectUpgradeAmount(item));
     }
 
-    if (((item.level || 1) + 1) % 5 === 0) {
-      const pierceMatch = item.effect.match(/破防\+(\d+(?:\.\d+)?)/);
-      pushLine(pierceMatch ? `破防+${pierceMatch[1]}` : "破防+0", 5);
-    }
+    const pierceMatch = item.effect.match(/破防\+(\d+(?:\.\d+)?)/);
+    const pierceBonus = ((item.level || 1) + 1) % 5 === 0 ? 5 : 0;
+    pushLine(pierceMatch ? `破防+${pierceMatch[1]}` : "破防+0", pierceBonus);
 
     return lines;
   }
@@ -1081,9 +1089,8 @@ function getUpgradeEffectLines(item) {
 
     pushLine(`${armor}%護甲`, getNextEffectUpgradeAmount(item), "%");
 
-    if (((item.level || 1) + 1) % 5 === 0) {
-      pushLine(`${dodge}%閃避`, 5, "%");
-    }
+    const dodgeBonus = ((item.level || 1) + 1) % 5 === 0 ? 5 : 0;
+    pushLine(`${dodge}%閃避`, dodgeBonus, "%");
 
     return lines;
   }
@@ -1242,7 +1249,7 @@ function getForgePickerItems(slotIndex) {
       const firstItem = forgeSlots[0]?.item;
 
       if (slotIndex === 0 || !firstItem) {
-        return slotIndex === 0;
+        return slotIndex === 0 && entry.item.rarity !== "傳奇";
       }
 
       return entry.item.type === firstItem.type && entry.item.rarity === firstItem.rarity;
@@ -1473,6 +1480,11 @@ function synthesizeForgeSlots() {
     return;
   }
 
+  if (firstSlot.item.rarity === "傳奇") {
+    showForgeResultText("傳奇裝備不能合成", "fail");
+    return;
+  }
+
   if (money < forgeCost) {
     showForgeResultText("金錢不足", "fail");
     return;
@@ -1683,6 +1695,17 @@ function calculatePlayerDamage() {
 function showDamageText(damageResult) {
   damageText.textContent = damageResult.isCritical ? `爆擊 ${damageResult.amount}` : damageResult.amount;
   damageText.classList.toggle("is-critical", damageResult.isCritical);
+  damageText.classList.remove("is-success");
+  damageText.classList.remove("is-active");
+
+  void damageText.offsetWidth;
+  damageText.classList.add("is-active");
+}
+
+function showBattleSuccessText(text) {
+  damageText.textContent = text;
+  damageText.classList.remove("is-critical");
+  damageText.classList.add("is-success");
   damageText.classList.remove("is-active");
 
   void damageText.offsetWidth;
@@ -1746,7 +1769,7 @@ function resetPlayerBullet() {
   playerBullet.style.setProperty("--player-bullet-lane", playerBulletLane);
 }
 
-function movePlayer(direction) {
+function movePlayer(horizontal, vertical = 0) {
   if (isGameOver) {
     return;
   }
@@ -1757,9 +1780,10 @@ function movePlayer(direction) {
     return;
   }
 
-  const nextLane = Math.max(0, Math.min(2, playerLane + direction));
+  const nextLane = Math.max(0, Math.min(2, playerLane + horizontal));
+  const nextRow = Math.max(0, Math.min(2, playerRow + vertical));
 
-  if (nextLane === playerLane) {
+  if (nextLane === playerLane && nextRow === playerRow) {
     return;
   }
 
@@ -1767,6 +1791,7 @@ function movePlayer(direction) {
   isMoving = true;
   hero.classList.add("is-moving");
   playerLane = nextLane;
+  playerRow = nextRow;
   updateHeroPosition();
 }
 
@@ -1843,16 +1868,21 @@ function gameOver() {
 
 function tryDeathSave() {
   if (Math.random() * 100 < playerStats.dodgeRate) {
+    showBattleSuccessText("閃避成功");
     return true;
   }
 
   if (battleArmorRate >= 100) {
     battleArmorRate -= 100;
+    updateBattleArmor();
+    showBattleSuccessText("防護成功");
     return true;
   }
 
   if (battleArmorRate > 0 && Math.random() * 100 < battleArmorRate) {
     battleArmorRate = 0;
+    updateBattleArmor();
+    showBattleSuccessText("防護成功");
     return true;
   }
 
@@ -1925,6 +1955,8 @@ function updateOpenBagScreen() {
   openBagImage.alt = `${rarity.name}袋子`;
   openBagImage.style.setProperty("--bag-scale", rarity.scale);
   openBagReward.textContent = "";
+  openBagRarity.textContent = rarity.name;
+  openBagRarity.className = `open-bag-rarity rarity-${bag.rarityIndex}`;
   openBagProgress.textContent = `袋子 ${openingBagIndex + 1}/${battleBags.length}　點擊 ${openingBagClicks}/4`;
 }
 
@@ -2029,8 +2061,28 @@ function finishBossDefeat() {
     winBattle();
   } else {
     goToNextBoss();
-    startEnemyActions();
+    startBossIntro();
   }
+}
+
+function startBossIntro() {
+  clearTimeout(bossIntroTimer);
+  stopEnemyActions();
+  enemy.classList.add("is-intro-hidden");
+  bossIntro.textContent = `${currentBossNumber}/${totalBossCount}`;
+  bossIntro.className = "boss-intro is-active";
+
+  bossIntroTimer = setTimeout(() => {
+    bossIntro.textContent = currentBossName;
+    bossIntro.classList.add("is-name");
+
+    bossIntroTimer = setTimeout(() => {
+      bossIntro.className = "boss-intro";
+      enemy.classList.remove("is-intro-hidden");
+      bossIntroTimer = null;
+      startEnemyActions();
+    }, 800);
+  }, 900);
 }
 
 function playKoEffect() {
@@ -2277,6 +2329,10 @@ function startEnemyActions() {
 }
 
 function stopEnemyActions() {
+  clearTimeout(bossIntroTimer);
+  bossIntroTimer = null;
+  bossIntro.className = "boss-intro";
+  enemy.classList.remove("is-intro-hidden");
   clearTimeout(enemyAttackDelayTimer);
   clearInterval(bulletTimer);
   clearTimeout(warningTimer);
@@ -2312,9 +2368,11 @@ startBtn.addEventListener("click", () => {
 
   showScreen("game");
   playerLane = 1;
+  playerRow = 0;
   battleArmorRate = playerStats.armorRate;
+  updateBattleArmor();
   updateHeroPosition();
-  startEnemyActions();
+  startBossIntro();
 });
 
 difficultyInfo.addEventListener("click", () => {
@@ -2470,12 +2528,28 @@ window.addEventListener("keydown", (event) => {
     return;
   }
 
+  if (event.target instanceof HTMLInputElement) {
+    return;
+  }
+
   if (event.key === "ArrowLeft") {
+    event.preventDefault();
     movePlayer(-1);
   }
 
   if (event.key === "ArrowRight") {
+    event.preventDefault();
     movePlayer(1);
+  }
+
+  if (event.key === "ArrowUp") {
+    event.preventDefault();
+    movePlayer(0, 1);
+  }
+
+  if (event.key === "ArrowDown") {
+    event.preventDefault();
+    movePlayer(0, -1);
   }
 });
 
@@ -2570,20 +2644,26 @@ document.addEventListener("touchmove", (event) => {
 
 arena.addEventListener("touchstart", (event) => {
   touchStartX = event.changedTouches[0].clientX;
+  touchStartY = event.changedTouches[0].clientY;
 }, { passive: true });
 
 arena.addEventListener("touchend", (event) => {
-  const distance = event.changedTouches[0].clientX - touchStartX;
+  const distanceX = event.changedTouches[0].clientX - touchStartX;
+  const distanceY = event.changedTouches[0].clientY - touchStartY;
 
-  if (Math.abs(distance) < 35) {
+  if (Math.max(Math.abs(distanceX), Math.abs(distanceY)) < 35) {
     return;
   }
 
-  movePlayer(distance > 0 ? 1 : -1);
+  if (Math.abs(distanceX) > Math.abs(distanceY)) {
+    movePlayer(distanceX > 0 ? 1 : -1);
+  } else {
+    movePlayer(0, distanceY < 0 ? 1 : -1);
+  }
 }, { passive: true });
 
 hero.addEventListener("transitionend", (event) => {
-  if (event.propertyName !== "left") {
+  if (event.propertyName !== "left" && event.propertyName !== "top") {
     return;
   }
 

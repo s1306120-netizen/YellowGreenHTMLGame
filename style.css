@@ -1248,6 +1248,10 @@ h2 {
     transform: translateY(-28px);
   }
 
+  .enemy.is-gage {
+    width: 75vw;
+  }
+
   .upgrade-slots {
     grid-template-columns: 76px 126px 76px;
     gap: 6px;

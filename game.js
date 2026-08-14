@@ -2421,6 +2421,7 @@ function shootPlayerBullet() {
 function startEnemyActions() {
   stopEnemyActions();
   resetBullet();
+  enemy.classList.toggle("is-gage", currentBossName === "格格");
   enemy.src = `outputs/${currentBossName}.png`;
   if (currentBossName === "格格") {
     enemyAttackDelayTimer = setTimeout(shootGageAttack, 1000);

@@ -362,7 +362,17 @@ function resumeWebAudio() {
 function playMusic(music) {
   resumeWebAudio();
   applyVolumeSettings();
-  music.play().catch(() => {});
+  music.play()
+    .then(() => {
+      const shouldKeepPlaying = music === lobbyMusic
+        ? currentScreenName === "lobby" || currentScreenName === "blacksmith"
+        : currentScreenName === "game";
+
+      if (!shouldKeepPlaying) {
+        music.pause();
+      }
+    })
+    .catch(() => {});
 }
 
 function playSound(sound) {

@@ -831,6 +831,40 @@ h2 {
   user-select: none;
 }
 
+.lane.gage-warning {
+  background: rgba(25, 90, 46, 0.72);
+}
+
+.lane.gage-yellow {
+  background: rgba(242, 205, 45, 0.78);
+}
+
+.lane.gage-red {
+  background: rgba(211, 50, 45, 0.82);
+}
+
+.gage-attack {
+  position: absolute;
+  top: -95px;
+  left: 50%;
+  z-index: 35;
+  width: 110px;
+  max-width: 34%;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  transition: left 500ms linear, top 500ms linear, opacity 120ms ease;
+}
+
+.gage-attack.is-active {
+  opacity: 1;
+}
+
+.gage-attack.is-flying {
+  left: var(--gage-target-x);
+  top: var(--gage-target-y);
+}
+
 .boss-intro {
   position: absolute;
   inset: 0;
@@ -851,6 +885,11 @@ h2 {
 
 .boss-intro.is-name {
   animation: boss-intro-name 800ms ease both;
+}
+
+.boss-intro.is-danger {
+  color: #e13333;
+  animation: boss-intro-name 650ms ease both;
 }
 
 @keyframes boss-intro-fade {

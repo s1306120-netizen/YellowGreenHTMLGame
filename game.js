@@ -60,11 +60,13 @@ const koK = document.getElementById("koK");
 const koO = document.getElementById("koO");
 const arena = document.querySelector(".arena");
 const bossIntro = document.getElementById("bossIntro");
+const lanes = [...document.querySelectorAll(".lane")];
 const hero = document.getElementById("hero");
 const enemy = document.getElementById("enemy");
 const bullet = document.getElementById("bullet");
 const bubbleWeapon = document.getElementById("bubbleWeapon");
 const playerBullet = document.getElementById("playerBullet");
+const gageAttack = document.getElementById("gageAttack");
 const bossHpText = document.getElementById("bossHpText");
 const damageText = document.getElementById("damageText");
 const bubbleDebugText = document.getElementById("bubbleDebugText");
@@ -160,6 +162,9 @@ let hitAnimation = null;
 let playerHitAnimation = null;
 let bubbleWeaponContactTimer = null;
 let bubbleSpinStartTime = 0;
+let gageTimers = [];
+let gageHazardCells = [];
+let gageHazardActive = false;
 let isGameOver = false;
 let isKoPlaying = false;
 let isOpeningBagReward = false;
@@ -191,6 +196,7 @@ const upgradeCosts = [
 const bossData = [
   { name: "小豬", difficulty: "簡單", hp: 100, defense: 0 },
   { name: "泡泡", difficulty: "簡單", hp: 100, defense: 5 },
+  { name: "格格", difficulty: "簡單", hp: 150, defense: 0 },
 ];
 
 const bagRarities = [
@@ -1763,6 +1769,100 @@ function resetBubbleWeapon(clearDebug = true) {
   }
 }
 
+function clearGageAttack() {
+  gageTimers.forEach(clearTimeout);
+  gageTimers = [];
+  gageHazardCells = [];
+  gageHazardActive = false;
+  gageAttack.style.transition = "none";
+  gageAttack.className = "gage-attack";
+  gageAttack.src = "outputs/格格攻擊圖1.png";
+  void gageAttack.offsetWidth;
+  gageAttack.style.removeProperty("transition");
+  lanes.forEach((lane) => lane.classList.remove("gage-warning", "gage-yellow", "gage-red"));
+}
+
+function scheduleGageAction(callback, delay) {
+  const timer = setTimeout(() => {
+    gageTimers = gageTimers.filter((entry) => entry !== timer);
+    callback();
+  }, delay);
+  gageTimers.push(timer);
+}
+
+function getGageHazardCells(targetCell) {
+  const row = Math.floor(targetCell / 3);
+  const column = targetCell % 3;
+  const choices = [
+    [row * 3, row * 3 + 1, row * 3 + 2],
+    [column, column + 3, column + 6],
+  ];
+
+  if ([0, 4, 8].includes(targetCell)) {
+    choices.push([0, 4, 8]);
+  }
+
+  if ([2, 4, 6].includes(targetCell)) {
+    choices.push([2, 4, 6]);
+  }
+
+  return choices[Math.floor(Math.random() * choices.length)];
+}
+
+function showGageCells(className) {
+  lanes.forEach((lane, index) => {
+    lane.classList.remove("gage-warning", "gage-yellow", "gage-red");
+    if (gageHazardCells.includes(index)) {
+      lane.classList.add(className);
+    }
+  });
+}
+
+function checkGageHazard() {
+  const playerCell = (2 - playerRow) * 3 + playerLane;
+
+  if (!gageHazardActive || isMoving || !gageHazardCells.includes(playerCell)) {
+    return;
+  }
+
+  if (!tryDeathSave()) {
+    gameOver();
+  }
+}
+
+function shootGageAttack() {
+  clearGageAttack();
+  enemy.src = "outputs/格格.png";
+  gageAttack.classList.add("is-active");
+
+  scheduleGageAction(() => {
+    const playerCell = (2 - playerRow) * 3 + playerLane;
+    const targetCell = Math.random() < 0.3 ? playerCell : Math.floor(Math.random() * 9);
+    const targetRow = Math.floor(targetCell / 3);
+    const targetColumn = targetCell % 3;
+    gageHazardCells = getGageHazardCells(targetCell);
+    gageAttack.style.setProperty("--gage-target-x", `${(targetColumn + 0.5) * (100 / 3)}%`);
+    gageAttack.style.setProperty("--gage-target-y", `${(targetRow + 0.5) * (100 / 3)}%`);
+    gageAttack.classList.add("is-flying");
+  }, 500);
+
+  scheduleGageAction(() => showGageCells("gage-warning"), 1000);
+  scheduleGageAction(() => {
+    gageAttack.src = "outputs/格格攻擊圖2.png";
+    showGageCells("gage-yellow");
+  }, 1500);
+  scheduleGageAction(() => {
+    gageAttack.src = "outputs/格格攻擊圖3.png";
+    showGageCells("gage-red");
+    gageHazardActive = true;
+    checkGageHazard();
+  }, 2000);
+  scheduleGageAction(() => {
+    clearGageAttack();
+    shootGageAttack();
+  }, 2500);
+}
+
 function resetPlayerBullet() {
   playerBullet.classList.remove("is-active");
   playerBullet.style.setProperty("--player-bullet-y", `${arena.clientHeight - 120}px`);
@@ -1793,6 +1893,7 @@ function movePlayer(horizontal, vertical = 0) {
   playerLane = nextLane;
   playerRow = nextRow;
   updateHeroPosition();
+  checkGageHazard();
 }
 
 function resetGameOver() {
@@ -2077,10 +2178,17 @@ function startBossIntro() {
     bossIntro.classList.add("is-name");
 
     bossIntroTimer = setTimeout(() => {
+      bossIntro.textContent = "開躲!";
       bossIntro.className = "boss-intro";
-      enemy.classList.remove("is-intro-hidden");
-      bossIntroTimer = null;
-      startEnemyActions();
+      void bossIntro.offsetWidth;
+      bossIntro.className = "boss-intro is-danger";
+
+      bossIntroTimer = setTimeout(() => {
+        bossIntro.className = "boss-intro";
+        enemy.classList.remove("is-intro-hidden");
+        bossIntroTimer = null;
+        startEnemyActions();
+      }, 650);
     }, 800);
   }, 900);
 }
@@ -2314,7 +2422,9 @@ function startEnemyActions() {
   stopEnemyActions();
   resetBullet();
   enemy.src = `outputs/${currentBossName}.png`;
-  if (currentBossDefense === 5) {
+  if (currentBossName === "格格") {
+    enemyAttackDelayTimer = setTimeout(shootGageAttack, 1000);
+  } else if (currentBossDefense === 5) {
     enemyAttackDelayTimer = setTimeout(shootBubbleWeapon, 1000);
   } else {
     enemyAttackDelayTimer = setTimeout(() => {
@@ -2344,6 +2454,7 @@ function stopEnemyActions() {
   clearTimeout(koTimerEnd);
   cancelAnimationFrame(hitAnimation);
   cancelAnimationFrame(playerHitAnimation);
+  clearGageAttack();
   bulletTimer = null;
   warningTimer = null;
   bulletEndTimer = null;

@@ -268,6 +268,12 @@ const battleMusic = new Audio("outputs/戰鬥音樂.mp3");
 const hammerSound = new Audio("outputs/敲擊聲.mp3");
 const failSound = new Audio("outputs/失敗聲.mp3");
 const successSound = new Audio("outputs/成功聲.mp3");
+const aimSound = new Audio("outputs/瞄準聲.mp3");
+const pigAttackSound = new Audio("outputs/小豬攻擊聲.mp3");
+const bubbleAttackSound = new Audio("outputs/泡泡攻擊聲.mp3");
+const gageAttackSound1 = new Audio("outputs/格格攻擊聲1.mp3");
+const gageAttackSound2 = new Audio("outputs/格格攻擊聲2.mp3");
+const gageAttackSound3 = new Audio("outputs/格格攻擊聲3.mp3");
 let bgMusicVolume = 0.65;
 let sfxVolume = 0.85;
 let currentScreenName = "lobby";
@@ -278,9 +284,10 @@ let successGain = null;
 let isAudioRouted = false;
 const useWebAudioVolume = window.matchMedia?.("(pointer: coarse)")?.matches || false;
 let areAudioElementsUnlocked = false;
+let bubbleSoundTimer = null;
 lobbyMusic.loop = true;
 battleMusic.loop = true;
-[lobbyMusic, battleMusic, hammerSound, failSound, successSound].forEach((audio) => {
+[lobbyMusic, battleMusic, hammerSound, failSound, successSound, aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((audio) => {
   audio.preload = "auto";
   audio.load();
 });
@@ -299,6 +306,9 @@ function applyVolumeSettings() {
   hammerSound.volume = sfxVolume;
   failSound.volume = sfxVolume;
   successSound.volume = Math.min(1, sfxVolume * 2);
+  [aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => {
+    sound.volume = sfxVolume;
+  });
 }
 
 applyVolumeSettings();
@@ -366,13 +376,26 @@ function playSound(sound) {
   });
 }
 
+function playSoundThen(firstSound, secondSound) {
+  resumeWebAudio();
+  applyVolumeSettings();
+  const firstClone = firstSound.cloneNode();
+  firstClone.volume = firstSound.volume;
+  firstClone.addEventListener("ended", () => playSound(secondSound), { once: true });
+  firstClone.play().catch(() => playSound(secondSound));
+}
+
+function playBubbleCycleSounds() {
+  playSoundThen(aimSound, bubbleAttackSound);
+}
+
 function unlockAudioElements() {
   if (areAudioElementsUnlocked) {
     return;
   }
 
   areAudioElementsUnlocked = true;
-  [hammerSound, failSound, successSound].forEach((sound) => {
+  [hammerSound, failSound, successSound, aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => {
     const wasMuted = sound.muted;
 
     sound.muted = true;
@@ -1834,6 +1857,7 @@ function shootGageAttack() {
   clearGageAttack();
   enemy.src = "outputs/格格.png";
   gageAttack.classList.add("is-active");
+  playSound(aimSound);
 
   scheduleGageAction(() => {
     const playerCell = (2 - playerRow) * 3 + playerLane;
@@ -1844,16 +1868,19 @@ function shootGageAttack() {
     gageAttack.style.setProperty("--gage-target-x", `${(targetColumn + 0.5) * (100 / 3)}%`);
     gageAttack.style.setProperty("--gage-target-y", `${(targetRow + 0.5) * (100 / 3)}%`);
     gageAttack.classList.add("is-flying");
+    playSound(gageAttackSound1);
   }, 500);
 
   scheduleGageAction(() => showGageCells("gage-warning"), 1000);
   scheduleGageAction(() => {
     gageAttack.src = "outputs/格格攻擊圖2.png";
     showGageCells("gage-yellow");
+    playSound(gageAttackSound2);
   }, 1500);
   scheduleGageAction(() => {
     gageAttack.src = "outputs/格格攻擊圖3.png";
     showGageCells("gage-red");
+    playSound(gageAttackSound3);
     gageHazardActive = true;
     checkGageHazard();
   }, 2000);
@@ -2377,11 +2404,13 @@ function shootBullet() {
   bulletLane = Math.floor(Math.random() * 3);
   enemy.src = enemyImages[bulletLane];
   resetBullet();
+  playSound(aimSound);
 
   warningTimer = setTimeout(() => {
     const bulletEndY = arena.clientHeight - bullet.offsetHeight;
 
     bullet.classList.add("is-active");
+    playSound(pigAttackSound);
     bullet.style.setProperty("--bullet-y", `${bulletEndY}px`);
     enemy.src = `outputs/${currentBossName}.png`;
     hitAnimation = requestAnimationFrame(watchBulletHit);
@@ -2393,11 +2422,17 @@ function shootBubbleWeapon() {
   const weaponLeft = "50%";
 
   enemy.src = "outputs/\u6ce1\u6ce1.png";
+  bubbleWeapon.style.animation = "none";
+  void bubbleWeapon.offsetWidth;
+  bubbleWeapon.style.removeProperty("animation");
   bubbleWeapon.style.visibility = "visible";
   bubbleWeapon.style.animationPlayState = "running";
   bubbleWeapon.style.setProperty("--bubble-weapon-left", weaponLeft);
   bubbleDebugText.textContent = "";
   bubbleSpinStartTime = performance.now();
+  clearInterval(bubbleSoundTimer);
+  playBubbleCycleSounds();
+  bubbleSoundTimer = setInterval(playBubbleCycleSounds, 3800);
   hitAnimation = requestAnimationFrame(watchBubbleWeaponHit);
 }
 function shootPlayerBullet() {
@@ -2446,6 +2481,7 @@ function stopEnemyActions() {
   enemy.classList.remove("is-intro-hidden");
   clearTimeout(enemyAttackDelayTimer);
   clearInterval(bulletTimer);
+  clearInterval(bubbleSoundTimer);
   clearTimeout(warningTimer);
   clearTimeout(bulletEndTimer);
   clearInterval(playerAttackTimer);
@@ -2457,6 +2493,7 @@ function stopEnemyActions() {
   cancelAnimationFrame(playerHitAnimation);
   clearGageAttack();
   bulletTimer = null;
+  bubbleSoundTimer = null;
   warningTimer = null;
   bulletEndTimer = null;
   playerAttackTimer = null;

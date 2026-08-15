@@ -46,6 +46,8 @@ const volumeToggleBtn = document.getElementById("volumeToggleBtn");
 const volumeControls = document.getElementById("volumeControls");
 const bgVolumeInput = document.getElementById("bgVolumeInput");
 const sfxVolumeInput = document.getElementById("sfxVolumeInput");
+const bgSoundToggleBtn = document.getElementById("bgSoundToggleBtn");
+const sfxSoundToggleBtn = document.getElementById("sfxSoundToggleBtn");
 const backBtn = document.getElementById("backBtn");
 const battleArmorText = document.getElementById("battleArmorText");
 const resultBackBtn = document.getElementById("resultBackBtn");
@@ -276,6 +278,8 @@ const gageAttackSound2 = new Audio("outputs/格格攻擊聲2.mp3");
 const gageAttackSound3 = new Audio("outputs/格格攻擊聲3.mp3");
 let bgMusicVolume = 0.65;
 let sfxVolume = 0.85;
+let isBackgroundSoundEnabled = true;
+let isSfxSoundEnabled = true;
 let currentScreenName = "lobby";
 let audioContext = null;
 let musicGain = null;
@@ -363,6 +367,10 @@ function resumeWebAudio() {
 }
 
 function playMusic(music) {
+  if (!isBackgroundSoundEnabled) {
+    return;
+  }
+
   resumeWebAudio();
   applyVolumeSettings();
   music.play()
@@ -379,6 +387,10 @@ function playMusic(music) {
 }
 
 function playSound(sound) {
+  if (!isSfxSoundEnabled) {
+    return;
+  }
+
   const now = performance.now();
   const lastPlayedAt = soundLastPlayedAt.get(sound) || -Infinity;
 
@@ -396,6 +408,10 @@ function playSound(sound) {
 }
 
 function playSoundThen(firstSound, secondSound) {
+  if (!isSfxSoundEnabled) {
+    return;
+  }
+
   const now = performance.now();
   const lastPlayedAt = soundLastPlayedAt.get(firstSound) || -Infinity;
 
@@ -677,6 +693,8 @@ function saveGame() {
     money,
     bgMusicVolume,
     sfxVolume,
+    isBackgroundSoundEnabled,
+    isSfxSoundEnabled,
     retreatBossByDifficulty,
     inventory,
     equippedItems: Object.fromEntries(
@@ -711,6 +729,8 @@ function loadGame() {
     money = Number(saveData.money) || 0;
     bgMusicVolume = Math.min(1, Math.max(0, Number(saveData.bgMusicVolume ?? bgMusicVolume)));
     sfxVolume = Math.min(1, Math.max(0, Number(saveData.sfxVolume ?? sfxVolume)));
+    isBackgroundSoundEnabled = saveData.isBackgroundSoundEnabled ?? true;
+    isSfxSoundEnabled = saveData.isSfxSoundEnabled ?? true;
     retreatBossByDifficulty = saveData.retreatBossByDifficulty && typeof saveData.retreatBossByDifficulty === "object"
       ? saveData.retreatBossByDifficulty
       : {};
@@ -2783,6 +2803,38 @@ function setSfxVolume(value) {
   saveGame();
 }
 
+function updateMobileSoundToggleLabels() {
+  bgSoundToggleBtn.textContent = isBackgroundSoundEnabled ? "開" : "關";
+  sfxSoundToggleBtn.textContent = isSfxSoundEnabled ? "開" : "關";
+}
+
+function setBackgroundSoundEnabled(enabled) {
+  isBackgroundSoundEnabled = enabled;
+
+  if (!enabled) {
+    lobbyMusic.pause();
+    battleMusic.pause();
+  } else if (currentScreenName === "game") {
+    playMusic(battleMusic);
+  } else if (currentScreenName === "lobby" || currentScreenName === "blacksmith") {
+    playMusic(lobbyMusic);
+  }
+
+  updateMobileSoundToggleLabels();
+  saveGame();
+}
+
+function setSfxSoundEnabled(enabled) {
+  isSfxSoundEnabled = enabled;
+
+  if (!enabled) {
+    [hammerSound, failSound, successSound, aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => sound.pause());
+  }
+
+  updateMobileSoundToggleLabels();
+  saveGame();
+}
+
 function bindMobileVolumeSlider(input, setter) {
   function setFromPointer(event) {
     const rect = input.getBoundingClientRect();
@@ -2831,6 +2883,14 @@ volumeToggleBtn.addEventListener("click", () => {
   volumeControls.classList.toggle("is-open");
 });
 
+bgSoundToggleBtn.addEventListener("click", () => {
+  setBackgroundSoundEnabled(!isBackgroundSoundEnabled);
+});
+
+sfxSoundToggleBtn.addEventListener("click", () => {
+  setSfxSoundEnabled(!isSfxSoundEnabled);
+});
+
 document.addEventListener("touchmove", (event) => {
   if (document.body.classList.contains("is-battle")) {
     event.preventDefault();
@@ -2869,6 +2929,7 @@ hero.addEventListener("transitionend", (event) => {
 loadGame();
 bgVolumeInput.value = Math.round(bgMusicVolume * 100);
 sfxVolumeInput.value = Math.round(sfxVolume * 100);
+updateMobileSoundToggleLabels();
 updateHeroPosition();
 resetBullet();
 resetPlayerBullet();

@@ -132,6 +132,10 @@ h1 {
   height: 28px;
 }
 
+.mobile-sound-toggle {
+  display: none;
+}
+
 .bag-button {
   position: absolute;
   top: 0;
@@ -1198,6 +1202,21 @@ h2 {
 }
 
 @media (max-width: 520px) {
+  .volume-controls input {
+    display: none;
+  }
+
+  .mobile-sound-toggle {
+    display: block;
+    min-height: 40px;
+    border: 0;
+    border-radius: 6px;
+    color: #fff;
+    background: #4e8a3f;
+    font: inherit;
+    font-weight: 800;
+  }
+
   body.is-battle {
     height: 100dvh;
     overflow: hidden;

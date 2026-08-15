@@ -48,6 +48,9 @@ const bgVolumeInput = document.getElementById("bgVolumeInput");
 const sfxVolumeInput = document.getElementById("sfxVolumeInput");
 const bgSoundToggleBtn = document.getElementById("bgSoundToggleBtn");
 const sfxSoundToggleBtn = document.getElementById("sfxSoundToggleBtn");
+const tutorialOverlay = document.getElementById("tutorialOverlay");
+const tutorialText = document.getElementById("tutorialText");
+const tutorialNextBtn = document.getElementById("tutorialNextBtn");
 const backBtn = document.getElementById("backBtn");
 const battleArmorText = document.getElementById("battleArmorText");
 const resultBackBtn = document.getElementById("resultBackBtn");
@@ -280,6 +283,8 @@ let bgMusicVolume = 0.65;
 let sfxVolume = 0.85;
 let isBackgroundSoundEnabled = true;
 let isSfxSoundEnabled = true;
+let tutorialStep = "intro";
+let tutorialDialogueIndex = 0;
 let currentScreenName = "lobby";
 let audioContext = null;
 let musicGain = null;
@@ -699,6 +704,7 @@ function saveGame() {
     sfxVolume,
     isBackgroundSoundEnabled,
     isSfxSoundEnabled,
+    tutorialStep,
     retreatBossByDifficulty,
     inventory,
     equippedItems: Object.fromEntries(
@@ -735,6 +741,7 @@ function loadGame() {
     sfxVolume = Math.min(1, Math.max(0, Number(saveData.sfxVolume ?? sfxVolume)));
     isBackgroundSoundEnabled = saveData.isBackgroundSoundEnabled ?? true;
     isSfxSoundEnabled = saveData.isSfxSoundEnabled ?? true;
+    tutorialStep = saveData.tutorialStep ?? "intro";
     retreatBossByDifficulty = saveData.retreatBossByDifficulty && typeof saveData.retreatBossByDifficulty === "object"
       ? saveData.retreatBossByDifficulty
       : {};
@@ -2839,6 +2846,33 @@ function setSfxSoundEnabled(enabled) {
   saveGame();
 }
 
+const tutorialIntroLines = [
+  "嗨，我是星星。歡迎來到愛的家の小遊戲！",
+  "這裡的 BOSS 會不斷發動攻擊，你要在九宮格中移動躲避，並靠自動攻擊擊敗牠們。",
+  "擊敗 BOSS 能拿到袋子、裝備和金錢。接下來我會帶你完成第一場挑戰！",
+];
+
+function showTutorialIntro() {
+  tutorialDialogueIndex = 0;
+  tutorialText.textContent = tutorialIntroLines[tutorialDialogueIndex];
+  tutorialNextBtn.textContent = "繼續";
+  tutorialOverlay.classList.add("is-open");
+}
+
+tutorialNextBtn.addEventListener("click", () => {
+  tutorialDialogueIndex += 1;
+
+  if (tutorialDialogueIndex < tutorialIntroLines.length) {
+    tutorialText.textContent = tutorialIntroLines[tutorialDialogueIndex];
+    tutorialNextBtn.textContent = tutorialDialogueIndex === tutorialIntroLines.length - 1 ? "開始設定" : "繼續";
+    return;
+  }
+
+  tutorialStep = "difficulty";
+  saveGame();
+  tutorialOverlay.classList.remove("is-open");
+});
+
 function bindMobileVolumeSlider(input, setter) {
   function setFromPointer(event) {
     const rect = input.getBoundingClientRect();
@@ -2940,3 +2974,6 @@ resetPlayerBullet();
 updateBossHpText();
 updateDifficultyInfo();
 updateMoneyText();
+if (tutorialStep === "intro") {
+  showTutorialIntro();
+}

@@ -52,7 +52,7 @@
         <span id="multiplierText">倍率：1.0x</span>
         <span id="rewardText">會獲得的東西：金錢100</span>
       </button>
-      <div class="game-version">版本 1.07</div>
+      <div class="game-version">版本 1.08</div>
       <button id="startBtn" class="primary-button" type="button">開始</button>
       <div class="death-warning-text">死亡會掉落身上全部裝備</div>
 
@@ -252,6 +252,14 @@
       </div>
     </section>
   </main>
+
+  <div id="tutorialOverlay" class="tutorial-overlay" aria-live="polite">
+    <div class="tutorial-dialogue">
+      <div class="tutorial-speaker"></div>
+      <p id="tutorialText"></p>
+      <button id="tutorialNextBtn" class="tutorial-next-button" type="button">繼續</button>
+    </div>
+  </div>
 
   <script src="game.js"></script>
 </body>

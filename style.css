@@ -58,8 +58,8 @@ button {
 }
 
 h1 {
-  margin: 0;
-  font-size: 44px;
+  margin: 12px 0 0;
+  font-size: 36px;
   letter-spacing: 0;
 }
 
@@ -308,6 +308,12 @@ h1 {
 
 #startBtn {
   margin-top: 34px;
+}
+
+.game-version {
+  margin-top: 14px;
+  color: rgba(36, 49, 38, 0.7);
+  font-size: 14px;
 }
 
 .death-warning-text,
@@ -1187,7 +1193,7 @@ h2 {
   }
 
   h1 {
-    font-size: 38px;
+    font-size: 32px;
   }
 }
 

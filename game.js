@@ -285,6 +285,7 @@ let isAudioRouted = false;
 const useWebAudioVolume = window.matchMedia?.("(pointer: coarse)")?.matches || false;
 let areAudioElementsUnlocked = false;
 let bubbleSoundTimer = null;
+let lastBubbleHitCheckAt = 0;
 const soundLastPlayedAt = new WeakMap();
 const soundSequenceTokens = new WeakMap();
 lobbyMusic.loop = true;
@@ -423,6 +424,11 @@ function playSoundThen(firstSound, secondSound) {
 
 function playBubbleCycleSounds() {
   playSoundThen(aimSound, bubbleAttackSound);
+}
+
+function scheduleBubbleCycleSounds() {
+  playBubbleCycleSounds();
+  bubbleSoundTimer = setTimeout(scheduleBubbleCycleSounds, 3800);
 }
 
 function unlockAudioElements() {
@@ -2398,7 +2404,11 @@ function watchBubbleWeaponHit() {
     return;
   }
 
-  checkBubbleWeaponHit();
+  const now = performance.now();
+  if (now - lastBubbleHitCheckAt >= 33) {
+    lastBubbleHitCheckAt = now;
+    checkBubbleWeaponHit();
+  }
 
   if (!isGameOver) {
     hitAnimation = requestAnimationFrame(watchBubbleWeaponHit);
@@ -2466,9 +2476,9 @@ function shootBubbleWeapon() {
   bubbleWeapon.style.setProperty("--bubble-weapon-left", weaponLeft);
   bubbleDebugText.textContent = "";
   bubbleSpinStartTime = performance.now();
-  clearInterval(bubbleSoundTimer);
-  playBubbleCycleSounds();
-  bubbleSoundTimer = setInterval(playBubbleCycleSounds, 3800);
+  lastBubbleHitCheckAt = 0;
+  clearTimeout(bubbleSoundTimer);
+  scheduleBubbleCycleSounds();
   hitAnimation = requestAnimationFrame(watchBubbleWeaponHit);
 }
 function shootPlayerBullet() {
@@ -2517,7 +2527,7 @@ function stopEnemyActions() {
   enemy.classList.remove("is-intro-hidden");
   clearTimeout(enemyAttackDelayTimer);
   clearInterval(bulletTimer);
-  clearInterval(bubbleSoundTimer);
+  clearTimeout(bubbleSoundTimer);
   clearTimeout(warningTimer);
   clearTimeout(bulletEndTimer);
   clearInterval(playerAttackTimer);

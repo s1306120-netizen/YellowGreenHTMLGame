@@ -300,7 +300,10 @@ battleMusic.loop = true;
 });
 
 function applyVolumeSettings() {
-  const currentBgVolume = currentScreenName === "blacksmith" ? bgMusicVolume / 32 : bgMusicVolume / 8;
+  const isMobile = window.matchMedia("(pointer: coarse)").matches;
+  const currentBgVolume = currentScreenName === "blacksmith"
+    ? bgMusicVolume / (isMobile ? 64 : 32)
+    : bgMusicVolume / (isMobile ? 16 : 8);
   const currentSfxVolume = Math.min(1, sfxVolume * 2);
 
   if (musicGain && sfxGain && successGain) {
@@ -2786,11 +2789,11 @@ function setBackgroundVolume(value) {
   applyVolumeSettings();
 
   if (blacksmithScreen.classList.contains("screen-active")) {
-    lobbyMusic.volume = bgMusicVolume / 32;
+    lobbyMusic.volume = bgMusicVolume / (window.matchMedia("(pointer: coarse)").matches ? 64 : 32);
   }
 
   if (gameScreen.classList.contains("screen-active")) {
-    battleMusic.volume = bgMusicVolume / 8;
+    battleMusic.volume = bgMusicVolume / (window.matchMedia("(pointer: coarse)").matches ? 16 : 8);
   }
 
   saveGame();

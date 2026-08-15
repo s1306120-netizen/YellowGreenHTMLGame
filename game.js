@@ -286,6 +286,7 @@ const useWebAudioVolume = window.matchMedia?.("(pointer: coarse)")?.matches || f
 let areAudioElementsUnlocked = false;
 let bubbleSoundTimer = null;
 const soundLastPlayedAt = new WeakMap();
+const soundSequenceTokens = new WeakMap();
 lobbyMusic.loop = true;
 battleMusic.loop = true;
 [lobbyMusic, battleMusic, hammerSound, failSound, successSound, aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((audio) => {
@@ -336,8 +337,9 @@ function setupWebAudioVolume() {
 
     audioContext.createMediaElementSource(lobbyMusic).connect(musicGain);
     audioContext.createMediaElementSource(battleMusic).connect(musicGain);
-    audioContext.createMediaElementSource(hammerSound).connect(sfxGain);
-    audioContext.createMediaElementSource(failSound).connect(sfxGain);
+    [hammerSound, failSound, aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => {
+      audioContext.createMediaElementSource(sound).connect(sfxGain);
+    });
     audioContext.createMediaElementSource(successSound).connect(successGain);
 
     isAudioRouted = true;
@@ -384,15 +386,12 @@ function playSound(sound) {
   }
 
   soundLastPlayedAt.set(sound, now);
+  soundSequenceTokens.set(sound, (soundSequenceTokens.get(sound) || 0) + 1);
   resumeWebAudio();
   applyVolumeSettings();
-  const soundClone = sound.cloneNode();
-
-  soundClone.volume = sound.volume;
-  soundClone.play().catch(() => {
-    sound.currentTime = 0;
-    sound.play().catch(() => {});
-  });
+  sound.pause();
+  sound.currentTime = 0;
+  sound.play().catch(() => {});
 }
 
 function playSoundThen(firstSound, secondSound) {
@@ -404,12 +403,22 @@ function playSoundThen(firstSound, secondSound) {
   }
 
   soundLastPlayedAt.set(firstSound, now);
+  const sequenceToken = (soundSequenceTokens.get(firstSound) || 0) + 1;
+  soundSequenceTokens.set(firstSound, sequenceToken);
   resumeWebAudio();
   applyVolumeSettings();
-  const firstClone = firstSound.cloneNode();
-  firstClone.volume = firstSound.volume;
-  firstClone.addEventListener("ended", () => playSound(secondSound), { once: true });
-  firstClone.play().catch(() => playSound(secondSound));
+  firstSound.pause();
+  firstSound.currentTime = 0;
+  firstSound.addEventListener("ended", () => {
+    if (soundSequenceTokens.get(firstSound) === sequenceToken) {
+      playSound(secondSound);
+    }
+  }, { once: true });
+  firstSound.play().catch(() => {
+    if (soundSequenceTokens.get(firstSound) === sequenceToken) {
+      playSound(secondSound);
+    }
+  });
 }
 
 function playBubbleCycleSounds() {

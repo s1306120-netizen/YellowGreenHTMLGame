@@ -300,21 +300,22 @@ battleMusic.loop = true;
 });
 
 function applyVolumeSettings() {
-  const currentBgVolume = currentScreenName === "blacksmith" ? bgMusicVolume / 4 : bgMusicVolume;
+  const currentBgVolume = currentScreenName === "blacksmith" ? bgMusicVolume / 8 : bgMusicVolume / 2;
+  const currentSfxVolume = Math.min(1, sfxVolume * 2);
 
   if (musicGain && sfxGain && successGain) {
     musicGain.gain.value = currentBgVolume;
-    sfxGain.gain.value = sfxVolume;
-    successGain.gain.value = Math.min(1, sfxVolume * 2);
+    sfxGain.gain.value = currentSfxVolume;
+    successGain.gain.value = currentSfxVolume;
   }
 
   lobbyMusic.volume = currentBgVolume;
   battleMusic.volume = currentBgVolume;
-  hammerSound.volume = sfxVolume;
-  failSound.volume = sfxVolume;
-  successSound.volume = Math.min(1, sfxVolume * 2);
+  hammerSound.volume = currentSfxVolume;
+  failSound.volume = currentSfxVolume;
+  successSound.volume = currentSfxVolume;
   [aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => {
-    sound.volume = sfxVolume;
+    sound.volume = currentSfxVolume;
   });
 }
 
@@ -2785,11 +2786,11 @@ function setBackgroundVolume(value) {
   applyVolumeSettings();
 
   if (blacksmithScreen.classList.contains("screen-active")) {
-    lobbyMusic.volume = bgMusicVolume / 4;
+    lobbyMusic.volume = bgMusicVolume / 8;
   }
 
   if (gameScreen.classList.contains("screen-active")) {
-    battleMusic.volume = bgMusicVolume;
+    battleMusic.volume = bgMusicVolume / 2;
   }
 
   saveGame();

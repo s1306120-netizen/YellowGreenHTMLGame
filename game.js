@@ -143,6 +143,8 @@ let currentBossName = "小豬";
 let currentBossNumber = 1;
 let totalBossCount = 1;
 let battleMultiplier = 1;
+let rewardStageRolled = false;
+let isRewardStage = false;
 let hasBubbleWeaponAttacked = false;
 let money = 0;
 let battleReward = 100;
@@ -224,6 +226,7 @@ const bossData = [
   { name: "普通小豬", displayName: "小豬", difficulty: "普通", hp: 350, defense: 15 },
 ];
 const tutorialBossSequence = ["小豬", "泡泡", "格格"];
+const rewardBossData = { name: "寶箱", hp: 150, defense: 0 };
 
 const bagRarities = [
   { name: "普通", image: "outputs/普通袋子.png", scale: 1 },
@@ -602,13 +605,14 @@ function updateDifficultyInfo() {
   const reward = rewardByDifficulty[difficultySelect.value] * bossCount * multiplier;
   const bagDropChance = Math.min(100, 20 * multiplier);
   const lootName = difficultySelect.value === "普通" ? "箱子" : "袋子";
+  const rewardStageChance = bossCount >= 5 ? (multiplier >= 2 ? 100 : 50) : 0;
 
   multiplierInput.value = multiplier.toFixed(1);
   bossCountInput.value = bossCount;
   difficultyText.textContent = `難度：${difficultySelect.value}`;
   bossCountText.textContent = `BOSS：${bossCount} 隻`;
   multiplierText.textContent = `倍率：${multiplier.toFixed(1)}x`;
-  rewardText.textContent = `戰利品：金錢${reward}、${bagDropChance}%獲得${lootName}*${bossCount}`;
+  rewardText.textContent = `戰利品：金錢${reward}、${bagDropChance}%獲得${lootName}*${bossCount}、${rewardStageChance}%出現獎勵關卡`;
 
   if (difficultySelect.value === "普通") {
     const cooldownClass = playerStats.moveCooldown <= 500 ? "recommendation-good" : "recommendation-bad";
@@ -2363,6 +2367,8 @@ function resetBoss() {
   totalBossCount = tutorialStep === "combat" ? 3 : Math.max(1, Number(bossCountInput.value));
   battleMultiplier = Math.max(1, Math.round(Number(multiplierInput.value) * 2) / 2);
   battleReward = getBattleReward();
+  rewardStageRolled = false;
+  isRewardStage = false;
   currentBossName = firstBoss.name;
   currentBossDefense = firstBoss.defense;
   delete retreatBossByDifficulty[difficultySelect.value];
@@ -2651,6 +2657,34 @@ function finishBossDefeat() {
   koO.classList.remove("is-active");
   isKoPlaying = false;
 
+  if (isRewardStage) {
+    isRewardStage = false;
+    if (currentBossNumber >= totalBossCount) {
+      winBattle();
+    } else {
+      goToNextBoss();
+      startBossIntro();
+    }
+    return;
+  }
+
+  if (!rewardStageRolled && totalBossCount >= 5 && currentBossNumber === 5) {
+    rewardStageRolled = true;
+
+    if (battleMultiplier >= 2 || Math.random() < 0.5) {
+      isRewardStage = true;
+      currentBossName = rewardBossData.name;
+      currentBossDefense = rewardBossData.defense;
+      bossMaxHp = Math.round(rewardBossData.hp * battleMultiplier);
+      bossHp = bossMaxHp;
+      enemy.classList.remove("is-defeated");
+      enemy.src = "outputs/寶箱.png";
+      updateBossHpText();
+      startBossIntro();
+      return;
+    }
+  }
+
   if (currentBossNumber >= totalBossCount) {
     if (tutorialStep === "combat") {
       tutorialStep = "bags";
@@ -2875,7 +2909,14 @@ function damageBoss() {
   resetPlayerBullet();
 
   if (bossHp <= 0) {
-    if (tutorialStep === "combat" || rollBossBagDrop()) {
+    if (currentBossName === "寶箱") {
+      battleBags.push({
+        kind: difficultySelect.value === "普通" ? "chest" : "bag",
+        rarityIndex: 0,
+        upgraded: false,
+      });
+      showBagDropText();
+    } else if (tutorialStep === "combat" || rollBossBagDrop()) {
       showBagDropText();
     }
 
@@ -2997,7 +3038,9 @@ function startEnemyActions() {
   resetBullet();
   enemy.classList.toggle("is-gage", currentBossName === "格格");
   enemy.src = `outputs/${currentBossName}.png`;
-  if (currentBossName === "格格") {
+  if (currentBossName === "寶箱") {
+    // The reward chest never attacks.
+  } else if (currentBossName === "格格") {
     enemyAttackDelayTimer = setTimeout(shootGageAttack, 1000);
   } else if (currentBossDefense === 5) {
     enemyAttackDelayTimer = setTimeout(shootBubbleWeapon, 1000);

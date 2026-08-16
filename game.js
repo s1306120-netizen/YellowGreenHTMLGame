@@ -605,7 +605,7 @@ function updateDifficultyInfo() {
   const reward = rewardByDifficulty[difficultySelect.value] * bossCount * multiplier;
   const bagDropChance = Math.min(100, 20 * multiplier);
   const lootName = difficultySelect.value === "普通" ? "箱子" : "袋子";
-  const rewardStageChance = bossCount >= 5 ? (multiplier >= 2 ? 100 : 50) : 0;
+  const rewardStageChance = getRewardStageChance(bossCount);
 
   multiplierInput.value = multiplier.toFixed(1);
   bossCountInput.value = bossCount;
@@ -2138,6 +2138,10 @@ function getBattleReward() {
   return rewardByDifficulty[difficultySelect.value] * bossCount * multiplier;
 }
 
+function getRewardStageChance(bossCount) {
+  return Math.min(100, Math.max(0, (bossCount - 1) * 20));
+}
+
 function resetBullet() {
   bullet.classList.remove("is-active", "is-normal-pig-left", "is-normal-pig-right", "is-normal-pig-middle");
   bullet.style.transition = "none";
@@ -2668,10 +2672,10 @@ function finishBossDefeat() {
     return;
   }
 
-  if (!rewardStageRolled && totalBossCount >= 5 && currentBossNumber === 5) {
+  if (!rewardStageRolled && currentBossNumber >= totalBossCount) {
     rewardStageRolled = true;
 
-    if (battleMultiplier >= 2 || Math.random() < 0.5) {
+    if (Math.random() * 100 < getRewardStageChance(totalBossCount)) {
       isRewardStage = true;
       currentBossName = rewardBossData.name;
       currentBossDefense = rewardBossData.defense;

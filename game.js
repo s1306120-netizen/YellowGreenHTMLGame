@@ -3,7 +3,6 @@ const gameScreen = document.getElementById("game");
 const bagOpeningScreen = document.getElementById("bagOpening");
 const blacksmithScreen = document.getElementById("blacksmith");
 const startBtn = document.getElementById("startBtn");
-const replayTutorialLobbyBtn = document.getElementById("replayTutorialLobbyBtn");
 const difficultyInfo = document.getElementById("difficultyInfo");
 const bagButton = document.getElementById("bagButton");
 const blacksmithButton = document.getElementById("blacksmithButton");
@@ -3332,12 +3331,6 @@ startBtn.addEventListener("click", () => {
 
 replayTutorialBtn.addEventListener("click", () => {
   saveEditorModal.classList.remove("is-active");
-  tutorialStep = "intro";
-  saveGame();
-  showTutorialIntro();
-});
-
-replayTutorialLobbyBtn.addEventListener("click", () => {
   tutorialStep = "intro";
   saveGame();
   showTutorialIntro();

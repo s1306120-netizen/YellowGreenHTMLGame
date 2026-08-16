@@ -3158,6 +3158,11 @@ function setTutorialMessage(message, buttonText = "繼續") {
 }
 
 function showTutorialIntro() {
+  if (money < 2500) {
+    money = 2500;
+    saveGame();
+    updateMoneyText();
+  }
   clearTutorialTarget();
   tutorialOverlay.classList.remove("is-top");
   tutorialNextBtn.hidden = false;

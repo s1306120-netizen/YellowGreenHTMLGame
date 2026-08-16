@@ -52,7 +52,7 @@
         <span id="multiplierText">倍率：1.0x</span>
         <span id="rewardText">會獲得的東西：金錢100</span>
       </button>
-      <div class="game-version">版本 1.08</div>
+      <div class="game-version">版本 1.09</div>
       <button id="startBtn" class="primary-button" type="button">開始</button>
       <div class="death-warning-text">死亡會掉落身上全部裝備</div>
 
@@ -118,6 +118,7 @@
           </label>
           <textarea id="saveJsonInput" class="save-json-input" spellcheck="false"></textarea>
           <button id="applySaveEditorBtn" class="small-button" type="button">套用</button>
+          <button id="replayTutorialBtn" class="small-button" type="button">重看新手教學</button>
           <button id="closeSaveEditorBtn" class="small-button" type="button">關閉</button>
         </div>
       </div>
@@ -254,7 +255,9 @@
   </main>
 
   <div id="tutorialOverlay" class="tutorial-overlay" aria-live="polite">
+    <div id="tutorialArrow" class="tutorial-arrow">▲</div>
     <div class="tutorial-dialogue">
+      <img class="tutorial-star" src="outputs/星星.png" alt="星星">
       <div class="tutorial-speaker"></div>
       <p id="tutorialText"></p>
       <button id="tutorialNextBtn" class="tutorial-next-button" type="button">繼續</button>

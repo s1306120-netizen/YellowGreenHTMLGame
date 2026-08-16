@@ -32,7 +32,47 @@ button {
   display: flex;
 }
 
+.tutorial-overlay.is-pass-through {
+  pointer-events: none;
+}
+
+.tutorial-overlay.is-top {
+  align-items: start;
+}
+
+.tutorial-target {
+  position: relative;
+  z-index: 101 !important;
+  outline: 3px solid #ffd326;
+  outline-offset: 4px;
+}
+
+.settings-modal.tutorial-modal {
+  z-index: 101;
+  pointer-events: none;
+}
+
+.settings-modal.tutorial-modal .tutorial-target {
+  pointer-events: auto;
+}
+
+.tutorial-arrow {
+  position: fixed;
+  z-index: 102;
+  display: none;
+  color: #ffd326;
+  font-size: 38px;
+  line-height: 1;
+  pointer-events: none;
+  text-shadow: 0 2px 2px #000;
+}
+
+.tutorial-arrow.is-visible {
+  display: block;
+}
+
 .tutorial-dialogue {
+  position: relative;
   width: min(100%, 520px);
   min-height: 150px;
   padding: 18px;
@@ -41,6 +81,17 @@ button {
   color: #243126;
   background: #fff8e8;
   box-shadow: 0 5px 0 rgba(0, 0, 0, 0.3);
+}
+
+.tutorial-star {
+  position: absolute;
+  top: -239px;
+  right: -40px;
+  width: 275px;
+  height: 275px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .tutorial-speaker {
@@ -66,8 +117,12 @@ button {
   line-height: 1.5;
 }
 
+.tutorial-danger {
+  color: #c31d1d;
+}
+
 .tutorial-next-button {
-  display: block;
+  display: none;
   min-width: 88px;
   margin-left: auto;
   padding: 8px 18px;

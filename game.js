@@ -34,6 +34,7 @@ const saveMoneyInput = document.getElementById("saveMoneyInput");
 const saveJsonInput = document.getElementById("saveJsonInput");
 const applySaveEditorBtn = document.getElementById("applySaveEditorBtn");
 const closeSaveEditorBtn = document.getElementById("closeSaveEditorBtn");
+const replayTutorialBtn = document.getElementById("replayTutorialBtn");
 const difficultySelect = document.getElementById("difficultySelect");
 const bossCountInput = document.getElementById("bossCountInput");
 const multiplierInput = document.getElementById("multiplierInput");
@@ -51,6 +52,7 @@ const sfxSoundToggleBtn = document.getElementById("sfxSoundToggleBtn");
 const tutorialOverlay = document.getElementById("tutorialOverlay");
 const tutorialText = document.getElementById("tutorialText");
 const tutorialNextBtn = document.getElementById("tutorialNextBtn");
+const tutorialArrow = document.getElementById("tutorialArrow");
 const backBtn = document.getElementById("backBtn");
 const battleArmorText = document.getElementById("battleArmorText");
 const resultBackBtn = document.getElementById("resultBackBtn");
@@ -203,6 +205,7 @@ const bossData = [
   { name: "泡泡", difficulty: "簡單", hp: 100, defense: 5 },
   { name: "格格", difficulty: "簡單", hp: 150, defense: 0 },
 ];
+const tutorialBossSequence = ["小豬", "泡泡", "格格"];
 
 const bagRarities = [
   { name: "普通", image: "outputs/普通袋子.png", scale: 1 },
@@ -285,6 +288,15 @@ let isBackgroundSoundEnabled = true;
 let isSfxSoundEnabled = true;
 let tutorialStep = "intro";
 let tutorialDialogueIndex = 0;
+let tutorialTarget = null;
+let tutorialDialogueMode = null;
+let tutorialAwaitingMove = false;
+let tutorialAwaitingDodge = false;
+let tutorialPigBulletPaused = false;
+let tutorialPauseTimer = null;
+let tutorialMoveLocked = false;
+let tutorialPigShotCount = 0;
+let tutorialUpgradeAttempts = 0;
 let currentScreenName = "lobby";
 let audioContext = null;
 let musicGain = null;
@@ -582,6 +594,7 @@ function updateHeroStatsList() {
     <div>護甲：${formatEffectAmount(playerStats.armorRate)}%</div>
     <div>閃避率：${formatEffectAmount(playerStats.dodgeRate)}%</div>
     <div>特殊效果：${playerStats.specialEffect}</div>
+    ${tutorialStep === "hero" ? "<hr><div>破防降低敵人防禦；攻擊力決定傷害；移動冷卻決定多久能再移動。</div><div>爆擊率與爆擊傷害提升爆擊；護甲與閃避率幫你抵擋攻擊；特殊效果提供額外能力。</div>" : ""}
   `;
 }
 
@@ -1393,6 +1406,11 @@ function renderForgePicker(slotIndex) {
         showUpgradeResultText("", "");
         updateUpgradeUi();
         forgePickerModal.classList.remove("is-active");
+        if (tutorialStep === "upgrade") {
+          tutorialOverlay.classList.add("is-open");
+          tutorialText.textContent = "武器放好了，現在按升級！";
+          setTutorialTarget(upgradeBtn);
+        }
         return;
       }
 
@@ -1411,12 +1429,32 @@ function renderForgePicker(slotIndex) {
       showForgeResultText("", "");
       renderForgeSlots();
       forgePickerModal.classList.remove("is-active");
+
+      if (tutorialStep === "compose") {
+        const nextSlot = forgeSlots.findIndex((slot) => !slot);
+        tutorialOverlay.classList.add("is-open");
+        if (nextSlot >= 0) {
+          tutorialText.textContent = `很好，現在點第 ${nextSlot + 1} 格放下一把武器。`;
+          setTutorialTarget(forgeSlotButtons[nextSlot]);
+        } else {
+          tutorialText.textContent = "三把武器都放好了，現在按合成！";
+          setTutorialTarget(synthesizeBtn);
+          tutorialOverlay.classList.add("is-pass-through");
+          tutorialOverlay.classList.add("is-top");
+        }
+      }
     });
     forgePickerList.appendChild(button);
   });
 }
 
 function openForgePicker(slotIndex) {
+  if (tutorialStep === "compose") {
+    tutorialOverlay.classList.remove("is-open");
+    tutorialOverlay.classList.remove("is-pass-through");
+    tutorialOverlay.classList.remove("is-top");
+    clearTutorialTarget();
+  }
   forgePickerMode = "compose";
   forgePickingSlot = slotIndex;
   renderForgePicker(slotIndex);
@@ -1424,6 +1462,10 @@ function openForgePicker(slotIndex) {
 }
 
 function openUpgradePicker() {
+  if (tutorialStep === "upgrade") {
+    tutorialOverlay.classList.remove("is-open");
+    clearTutorialTarget();
+  }
   forgePickerMode = "upgrade";
   renderForgePicker(0);
   forgePickerModal.classList.add("is-active");
@@ -1454,6 +1496,14 @@ function collectUpgradeResult() {
   showUpgradeResultText("已放回包包", "success");
   updateUpgradeUi();
   saveGame();
+  if (tutorialStep === "upgrade") {
+    tutorialStep = "equip";
+    saveGame();
+    showScreen("lobby");
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "先點包包，穿上剛剛合成的石劍。";
+    setTutorialTarget(bagButton);
+  }
 }
 
 function showUpgradeResultText(text, type) {
@@ -1520,7 +1570,11 @@ function upgradeSelectedItem() {
   setTimeout(() => {
     upgradeBlacksmithInsideImage.classList.remove("is-forging");
 
-    if (Math.random() * 100 < getUpgradeChance(item)) {
+    const didUpgrade = tutorialStep === "upgrade"
+      ? ++tutorialUpgradeAttempts >= 2
+      : Math.random() * 100 < getUpgradeChance(item);
+
+    if (didUpgrade) {
       item.effect = getUpgradedEffectText(item);
       item.level = (item.level || 1) + 1;
       syncEquippedItemUpgrade(itemBeforeUpgrade, item);
@@ -1530,10 +1584,20 @@ function upgradeSelectedItem() {
       setEquipmentSlot(upgradeResultSlot, upgradeResultImage, item, "outputs/空裝備格子圖.png", "升級結果");
       showUpgradeResultText(`成功：${item.name} Lv${item.level}`, "success");
       playSound(successSound);
+      if (tutorialStep === "upgrade") {
+        tutorialOverlay.classList.add("is-open");
+        tutorialText.textContent = "升級成功！點結果格收下武器。";
+        setTutorialTarget(upgradeResultSlot);
+      }
     } else {
       setEquipmentSlot(upgradeResultSlot, upgradeResultImage, null, "outputs/空裝備格子圖.png", "升級結果");
       showUpgradeResultText(`失敗：${item.name} 保持 Lv${item.level || 1}`, "fail");
       playSound(failSound);
+      if (tutorialStep === "upgrade") {
+        tutorialOverlay.classList.add("is-open");
+        tutorialText.textContent = "太可惜了，失敗了。再試一次！";
+        setTutorialTarget(upgradeBtn);
+      }
     }
 
     recalculatePlayerStats();
@@ -1555,6 +1619,14 @@ function collectForgeResult() {
   showForgeResultText(`已收下：${forgeResultItem.name}`, "success");
   forgeResultItem = null;
   setEquipmentSlot(blacksmithResultSlot, blacksmithResultImage, null, "outputs/空裝備格子圖.png", "合成結果");
+  if (tutorialStep === "compose") {
+    tutorialStep = "upgrade";
+    saveGame();
+    tutorialOverlay.classList.remove("is-pass-through");
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "合成成功！先回大廳，再進一次鐵匠鋪來升級。";
+    setTutorialTarget(blacksmithBackBtn);
+  }
 }
 
 function synthesizeForgeSlots() {
@@ -1594,7 +1666,7 @@ function synthesizeForgeSlots() {
 
   const usedIndexes = forgeSlots.map((entry) => entry.index);
   const baseItem = firstSlot.item;
-  const isUpgrade = Math.random() < 0.5 && baseItem.rarity !== "傳奇";
+  const isUpgrade = tutorialStep === "compose" || Math.random() < 0.5 && baseItem.rarity !== "傳奇";
   const resultItem = isUpgrade
     ? createHigherRarityItem(baseItem)
     : createSameRarityItem(baseItem.type, baseItem.rarity) || { ...baseItem };
@@ -1623,9 +1695,16 @@ function synthesizeForgeSlots() {
       });
     });
     forgeSlots = [null, null, null];
-    forgeResultItem = resultItem;
-    setEquipmentSlot(blacksmithResultSlot, blacksmithResultImage, resultItem, "outputs/空裝備格子圖.png", "合成結果");
-    showForgeResultText(
+      forgeResultItem = resultItem;
+      setEquipmentSlot(blacksmithResultSlot, blacksmithResultImage, resultItem, "outputs/空裝備格子圖.png", "合成結果");
+      if (tutorialStep === "compose") {
+        tutorialOverlay.classList.remove("is-pass-through");
+        tutorialOverlay.classList.remove("is-top");
+        tutorialOverlay.classList.add("is-open");
+        tutorialText.textContent = "合成成功！先點上面的結果格收下武器。";
+        setTutorialTarget(blacksmithResultSlot);
+      }
+      showForgeResultText(
       `${isUpgrade ? "成功" : "失敗"}：${resultItem.name}`,
       isUpgrade ? "success" : "fail"
     );
@@ -1707,6 +1786,17 @@ function openBagRewardByRarity(rarityIndex) {
 }
 
 function collectBagReward(bag) {
+  if (tutorialStep === "bags" && bag.tutorialRewardName) {
+    const item = findEquipmentByName(bag.tutorialRewardName);
+    addEquipmentToInventory(item);
+    return {
+      text: `獲得裝備：${item.name}`,
+      image: item.image,
+      alt: item.name,
+      scale: 1.35,
+    };
+  }
+
   const reward = openBagRewardByRarity(bag.rarityIndex);
 
   if (reward.type === "money") {
@@ -1848,8 +1938,19 @@ function getBattleReward() {
 
 function resetBullet() {
   bullet.classList.remove("is-active");
+  bullet.style.removeProperty("top");
+  bullet.style.removeProperty("transition");
   bullet.style.setProperty("--bullet-y", "7px");
   bullet.style.setProperty("--bullet-lane", bulletLane);
+}
+
+function pauseTutorialDodge(message) {
+  tutorialDialogueMode = "dodge";
+  tutorialOverlay.classList.add("is-open");
+  tutorialNextBtn.hidden = false;
+  tutorialNextBtn.textContent = "躲避";
+  tutorialText.innerHTML = `<span class="tutorial-danger">注意！</span> ${message}`;
+  clearTutorialTarget();
 }
 
 function resetBubbleWeapon(clearDebug = true) {
@@ -1915,6 +2016,10 @@ function showGageCells(className) {
 }
 
 function checkGageHazard() {
+  if (tutorialStep === "combat" && currentBossName === "格格") {
+    return;
+  }
+
   const playerCell = (2 - playerRow) * 3 + playerLane;
 
   if (!gageHazardActive || isMoving || !gageHazardCells.includes(playerCell)) {
@@ -1970,7 +2075,7 @@ function resetPlayerBullet() {
 }
 
 function movePlayer(horizontal, vertical = 0) {
-  if (isGameOver) {
+  if (isGameOver || tutorialMoveLocked) {
     return;
   }
 
@@ -1994,6 +2099,35 @@ function movePlayer(horizontal, vertical = 0) {
   playerRow = nextRow;
   updateHeroPosition();
   checkGageHazard();
+
+  if (tutorialAwaitingMove) {
+    tutorialAwaitingMove = false;
+    clearTutorialTarget();
+    tutorialOverlay.classList.remove("is-open");
+    startEnemyActions();
+  }
+
+  if (tutorialAwaitingDodge) {
+    tutorialAwaitingDodge = false;
+    tutorialPigBulletPaused = false;
+    clearTutorialTarget();
+    tutorialOverlay.classList.remove("is-open");
+    if (tutorialStep === "combat" && currentBossName === "格格") {
+      return;
+    }
+    if (tutorialStep === "combat" && currentBossName === "小豬") {
+      bullet.style.removeProperty("top");
+      bullet.style.removeProperty("transition");
+      requestAnimationFrame(() => bullet.style.setProperty("--bullet-y", `${arena.clientHeight - bullet.offsetHeight}px`));
+      bulletEndTimer = setTimeout(() => {
+        resetBullet();
+        startEnemyActions();
+      }, 620);
+    } else {
+      resetBullet();
+      startEnemyActions();
+    }
+  }
 }
 
 function resetGameOver() {
@@ -2013,8 +2147,11 @@ function resetGameOver() {
 function resetBoss() {
   const availableBosses = bossData.filter((boss) => boss.difficulty === difficultySelect.value);
   const savedBossName = retreatBossByDifficulty[difficultySelect.value];
-  const firstBoss = availableBosses.find((boss) => boss.name === savedBossName)
-    || availableBosses[Math.floor(Math.random() * availableBosses.length)];
+  const tutorialBoss = bossData.find((boss) => boss.name === tutorialBossSequence[0]);
+  const firstBoss = tutorialStep === "combat"
+    ? tutorialBoss
+    : availableBosses.find((boss) => boss.name === savedBossName)
+      || availableBosses[Math.floor(Math.random() * availableBosses.length)];
 
   if (!firstBoss) {
     return false;
@@ -2028,6 +2165,7 @@ function resetBoss() {
   delete retreatBossByDifficulty[difficultySelect.value];
   saveGame();
   hasBubbleWeaponAttacked = false;
+  tutorialPigShotCount = 0;
   bossMaxHp = Math.round(firstBoss.hp * battleMultiplier);
   currentBossNumber = 1;
   bossHp = bossMaxHp;
@@ -2052,6 +2190,29 @@ function showResult(title, earnedMoney) {
 }
 
 function gameOver() {
+  if (tutorialStep === "combat") {
+    stopEnemyActions();
+    tutorialOverlay.classList.add("is-open");
+    tutorialNextBtn.hidden = currentBossName !== "泡泡";
+    tutorialText.innerHTML = "<span class=\"tutorial-danger\">沒關係，再試一次！</span>";
+    clearTutorialTarget();
+    if (currentBossName === "泡泡") {
+      tutorialDialogueMode = "retry";
+      tutorialNextBtn.textContent = "繼續";
+      return;
+    }
+    setTimeout(() => {
+      tutorialOverlay.classList.remove("is-open");
+      bossHp = bossMaxHp;
+      updateBossHpText();
+      resetBullet();
+      resetBubbleWeapon();
+      clearGageAttack();
+      startBossIntro();
+    }, 1200);
+    return;
+  }
+
   hero.classList.add("is-dead");
   battleBags = [];
   const droppedItems = Object.values(equippedItems).filter(Boolean);
@@ -2162,6 +2323,9 @@ function updateOpenBagScreen() {
 }
 
 function upgradeBagByClick(bag, clickCount) {
+  if (tutorialStep === "bags") {
+    return;
+  }
   if (clickCount === 1 && bag.rarityIndex === 0 && Math.random() < 0.5) {
     bag.rarityIndex = 1;
   }
@@ -2181,11 +2345,26 @@ function startBagOpening() {
   isOpeningBagReward = false;
   updateOpenBagScreen();
   showScreen("bagOpening");
+  if (tutorialStep === "bags") {
+    tutorialDialogueMode = "bags";
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "這是袋子。每個袋子點四下會打開，裡面能獲得裝備或金錢。";
+  }
 }
 
 function finishBagOpening() {
+  if (tutorialStep === "bags") {
+    tutorialStep = "compose";
+    money = Math.max(money, forgeCost);
+    saveGame();
+  }
   showScreen("lobby");
   collectPendingMoney();
+  if (tutorialStep === "compose") {
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "你拿到了三把普通武器。點鐵匠鋪，來試著合成吧！";
+    setTutorialTarget(blacksmithButton);
+  }
 }
 
 function clickOpenBag() {
@@ -2259,6 +2438,15 @@ function finishBossDefeat() {
   isKoPlaying = false;
 
   if (currentBossNumber >= totalBossCount) {
+    if (tutorialStep === "combat") {
+      tutorialStep = "bags";
+      battleBags = [
+        { rarityIndex: 0, upgraded: false, tutorialRewardName: "破舊木劍" },
+        { rarityIndex: 0, upgraded: false, tutorialRewardName: "破舊木劍" },
+        { rarityIndex: 1, upgraded: false, tutorialRewardName: "標準木劍" },
+      ];
+      saveGame();
+    }
     winBattle();
   } else {
     goToNextBoss();
@@ -2287,7 +2475,11 @@ function startBossIntro() {
         bossIntro.className = "boss-intro";
         enemy.classList.remove("is-intro-hidden");
         bossIntroTimer = null;
-        startEnemyActions();
+        if (tutorialStep === "combat") {
+          showBattleTutorialMessage();
+        } else {
+          startEnemyActions();
+        }
       }, 650);
     }, 800);
   }, 900);
@@ -2325,7 +2517,9 @@ function playKoEffect() {
 
 function goToNextBoss() {
   const availableBosses = bossData.filter((boss) => boss.difficulty === difficultySelect.value);
-  const nextBoss = availableBosses[Math.floor(Math.random() * availableBosses.length)];
+  const nextBoss = tutorialStep === "combat"
+    ? bossData.find((boss) => boss.name === tutorialBossSequence[currentBossNumber])
+    : availableBosses[Math.floor(Math.random() * availableBosses.length)];
 
   currentBossNumber += 1;
   currentBossName = nextBoss.name;
@@ -2339,6 +2533,10 @@ function goToNextBoss() {
 }
 
 function checkBulletHit() {
+  if (tutorialPigBulletPaused) {
+    return;
+  }
+
   if (isMoving) {
     return;
   }
@@ -2451,7 +2649,9 @@ function damageBoss() {
     return;
   }
 
-  const damageResult = calculatePlayerDamage();
+  const damageResult = tutorialStep === "combat"
+    ? { amount: Math.ceil(bossMaxHp / 3), isCritical: false }
+    : calculatePlayerDamage();
   const damage = damageResult.amount;
 
   bossHp = Math.max(0, bossHp - damage);
@@ -2460,7 +2660,7 @@ function damageBoss() {
   resetPlayerBullet();
 
   if (bossHp <= 0) {
-    if (rollBossBagDrop()) {
+    if (tutorialStep === "combat" || rollBossBagDrop()) {
       showBagDropText();
     }
 
@@ -2478,12 +2678,40 @@ function shootBullet() {
     return;
   }
 
-  bulletLane = Math.floor(Math.random() * 3);
+  bulletLane = tutorialStep === "combat" && currentBossName === "小豬"
+    ? playerLane
+    : Math.floor(Math.random() * 3);
   enemy.src = enemyImages[bulletLane];
   resetBullet();
   playSound(aimSound);
 
   warningTimer = setTimeout(() => {
+    if (tutorialStep === "combat" && currentBossName === "小豬") {
+      tutorialPigShotCount += 1;
+      if (tutorialPigShotCount === 1) {
+        tutorialMoveLocked = true;
+        canPlayerDamage = false;
+        clearInterval(bulletTimer);
+        clearInterval(playerAttackTimer);
+        clearTimeout(playerAttackDelayTimer);
+        bulletTimer = null;
+        bullet.classList.add("is-active");
+        bullet.style.setProperty("--bullet-y", `${arena.clientHeight / 2 - bullet.offsetHeight / 2}px`);
+        playSound(pigAttackSound);
+        tutorialPauseTimer = setTimeout(() => {
+          bullet.style.transition = "none";
+          bullet.style.top = `${bullet.offsetTop}px`;
+          tutorialMoveLocked = false;
+          tutorialAwaitingDodge = true;
+          tutorialOverlay.classList.add("is-open");
+          tutorialNextBtn.hidden = true;
+          tutorialText.innerHTML = "<span class=\"tutorial-danger\">注意！</span> 子彈飛到中間排了，現在滑動到其他格子躲開！";
+        }, 310);
+        return;
+      }
+
+    }
+
     const bulletEndY = arena.clientHeight - bullet.offsetHeight;
 
     bullet.classList.add("is-active");
@@ -2586,6 +2814,10 @@ function stopEnemyActions() {
 }
 
 startBtn.addEventListener("click", () => {
+  if (tutorialStep === "difficulty" && Number(bossCountInput.value) === 3) {
+    finishTutorialForNow();
+  }
+
   resetGameOver();
   if (!resetBoss()) {
     alert("這個難度目前沒有BOSS資料");
@@ -2613,36 +2845,79 @@ closeDifficultyBtn.addEventListener("click", () => {
 heroInfoBtn.addEventListener("click", () => {
   updateHeroStatsList();
   heroInfoModal.classList.add("is-active");
+  if (tutorialStep === "hero") {
+    clearTutorialTarget();
+    tutorialOverlay.classList.remove("is-open");
+  }
 });
 
 closeHeroInfoBtn.addEventListener("click", () => {
   heroInfoModal.classList.remove("is-active");
+  if (tutorialStep === "hero") {
+    tutorialStep = "completed";
+    saveGame();
+    tutorialDialogueMode = "final";
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.innerHTML = "開始你的閃避之旅！<br><span class=\"tutorial-danger\">小心喔，只要死亡身上的所有裝備都會掉落。</span>";
+  }
 });
 
 bagButton.addEventListener("click", () => {
   updateInventoryList();
   inventoryModal.classList.add("is-active");
+  if (tutorialStep === "equip") {
+    tutorialOverlay.classList.remove("is-open");
+    clearTutorialTarget();
+  }
 });
 
 blacksmithButton.addEventListener("click", () => {
   showForgeResultText("", "");
   showBlacksmithMode("select");
   showScreen("blacksmith");
+  if (tutorialStep === "compose") {
+    forgeSlots = [null, null, null];
+    renderBlacksmith();
+    showBlacksmithMode("compose");
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "請手動把三把普通武器放進三個格子。先點第一格。";
+    setTutorialTarget(forgeSlotButtons[0]);
+  }
+  if (tutorialStep === "upgrade") {
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "現在點升級，讓剛合成的武器變得更強。";
+    setTutorialTarget(openUpgradeModeBtn);
+  }
 });
 
 openComposeModeBtn.addEventListener("click", () => {
   renderBlacksmith();
   showBlacksmithMode("compose");
+  if (tutorialStep === "compose") {
+    clearTutorialTarget();
+    tutorialOverlay.classList.remove("is-open");
+  }
 });
 
 openUpgradeModeBtn.addEventListener("click", () => {
   resetUpgradeSlot();
   showBlacksmithMode("upgrade");
+  if (tutorialStep === "upgrade") {
+    tutorialUpgradeAttempts = 0;
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.innerHTML = "先放入剛合成的武器，升級可以讓武器變得更強。<br><span class=\"tutorial-danger\">但要小心，升級可能會失敗！</span>";
+    setTutorialTarget(upgradeInputSlot);
+  }
 });
 
 blacksmithBackBtn.addEventListener("click", () => {
   collectForgeResult();
   showScreen("lobby");
+  if (tutorialStep === "upgrade") {
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "現在點鐵匠鋪，進入升級教學。";
+    setTutorialTarget(blacksmithButton);
+  }
 });
 
 upgradeBackBtn.addEventListener("click", () => {
@@ -2684,6 +2959,13 @@ itemModalActionBtn.addEventListener("click", () => {
 
   itemModal.classList.remove("is-active");
   inventoryModal.classList.remove("is-active");
+  if (tutorialStep === "equip") {
+    tutorialStep = "hero";
+    saveGame();
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "現在點愛的家查看角色數值。";
+    setTutorialTarget(heroInfoBtn);
+  }
 });
 
 closeItemModalBtn.addEventListener("click", () => {
@@ -2852,25 +3134,194 @@ const tutorialIntroLines = [
   "擊敗 BOSS 能拿到袋子、裝備和金錢。接下來我會帶你完成第一場挑戰！",
 ];
 
+function clearTutorialTarget() {
+  tutorialTarget?.classList.remove("tutorial-target");
+  tutorialTarget = null;
+  tutorialArrow.classList.remove("is-visible");
+}
+
+function setTutorialTarget(target) {
+  clearTutorialTarget();
+  tutorialTarget = target;
+  target.classList.add("tutorial-target");
+  const rect = target.getBoundingClientRect();
+  tutorialArrow.style.left = `${rect.left + rect.width / 2 - 16}px`;
+  tutorialArrow.style.top = `${Math.max(6, rect.top - 42)}px`;
+  tutorialArrow.classList.add("is-visible");
+}
+
+function setTutorialMessage(message, buttonText = "繼續") {
+  tutorialText.textContent = message;
+  tutorialNextBtn.textContent = buttonText;
+}
+
 function showTutorialIntro() {
+  clearTutorialTarget();
+  tutorialOverlay.classList.remove("is-top");
+  tutorialNextBtn.hidden = false;
   tutorialDialogueIndex = 0;
-  tutorialText.textContent = tutorialIntroLines[tutorialDialogueIndex];
-  tutorialNextBtn.textContent = "繼續";
+  setTutorialMessage(tutorialIntroLines[tutorialDialogueIndex]);
   tutorialOverlay.classList.add("is-open");
 }
 
+function showDifficultyTutorial() {
+  tutorialOverlay.classList.add("is-open");
+  tutorialNextBtn.hidden = true;
+  setTutorialMessage("先點這個設定框，把這次挑戰調整成 3 隻 BOSS。", "我知道了");
+  setTutorialTarget(difficultyInfo);
+}
+
+function showBattleTutorialMessage() {
+  const bossTips = {
+    "小豬": "小豬會先瞄準一列，再射出子彈。用滑動或方向鍵移到別格躲開！",
+    "泡泡": "狼牙棒快碰到你時，利用移動期間的無敵時間即可躲掉攻擊。",
+    "格格": "格格會丟出炸彈，紅色格子出現前要離開那裡。",
+  };
+
+  tutorialDialogueMode = "battle";
+  tutorialOverlay.classList.add("is-open");
+  tutorialNextBtn.hidden = currentBossName !== "泡泡";
+  if (currentBossName === "小豬") {
+    tutorialText.innerHTML = `${bossTips[currentBossName]}<br><span class="tutorial-danger">移動有冷卻時間，先看清楚敵人的動向再移動！</span>`;
+  } else {
+    setTutorialMessage(bossTips[currentBossName]);
+  }
+
+  if (currentBossName === "泡泡") {
+    tutorialNextBtn.textContent = "繼續";
+    return;
+  }
+
+  clearTimeout(tutorialPauseTimer);
+  tutorialPauseTimer = setTimeout(() => {
+    tutorialDialogueMode = null;
+    tutorialOverlay.classList.remove("is-open");
+    startEnemyActions();
+  }, 2200);
+}
+
+function finishTutorialForNow() {
+  clearTutorialTarget();
+  difficultyModal.classList.remove("tutorial-modal");
+  tutorialOverlay.classList.remove("is-open");
+  tutorialStep = "combat";
+  saveGame();
+}
+
 tutorialNextBtn.addEventListener("click", () => {
+  if (tutorialDialogueMode === "final") {
+    tutorialDialogueMode = null;
+    tutorialOverlay.classList.remove("is-open");
+    return;
+  }
+
+  if (tutorialDialogueMode === "bags") {
+    tutorialDialogueMode = null;
+    tutorialOverlay.classList.remove("is-open");
+    return;
+  }
+
+  if (tutorialDialogueMode === "battle") {
+    tutorialDialogueMode = null;
+    if (currentBossName === "泡泡") {
+      tutorialOverlay.classList.remove("is-open");
+      startEnemyActions();
+      return;
+    }
+    tutorialAwaitingMove = true;
+    tutorialOverlay.classList.remove("is-open");
+    clearTutorialTarget();
+    return;
+  }
+
+  if (tutorialDialogueMode === "retry") {
+    tutorialDialogueMode = null;
+    tutorialOverlay.classList.remove("is-open");
+    bossHp = bossMaxHp;
+    updateBossHpText();
+    resetBullet();
+    resetBubbleWeapon();
+    clearGageAttack();
+    startBossIntro();
+    return;
+  }
+
+  if (tutorialDialogueMode === "dodge") {
+    tutorialDialogueMode = null;
+    tutorialAwaitingDodge = true;
+    tutorialOverlay.classList.remove("is-open");
+    clearTutorialTarget();
+    return;
+  }
+
   tutorialDialogueIndex += 1;
 
   if (tutorialDialogueIndex < tutorialIntroLines.length) {
-    tutorialText.textContent = tutorialIntroLines[tutorialDialogueIndex];
-    tutorialNextBtn.textContent = tutorialDialogueIndex === tutorialIntroLines.length - 1 ? "開始設定" : "繼續";
+    setTutorialMessage(
+      tutorialIntroLines[tutorialDialogueIndex],
+      tutorialDialogueIndex === tutorialIntroLines.length - 1 ? "開始設定" : "繼續"
+    );
     return;
   }
 
   tutorialStep = "difficulty";
   saveGame();
-  tutorialOverlay.classList.remove("is-open");
+  showDifficultyTutorial();
+});
+
+tutorialOverlay.addEventListener("click", (event) => {
+  if (event.target !== tutorialOverlay) {
+    return;
+  }
+
+  if (tutorialStep === "intro" || tutorialDialogueMode) {
+    tutorialNextBtn.click();
+  }
+});
+
+difficultyInfo.addEventListener("click", () => {
+  if (tutorialStep !== "difficulty") {
+    return;
+  }
+
+  difficultyModal.classList.add("tutorial-modal");
+  tutorialNextBtn.hidden = true;
+  setTutorialMessage("把 BOSS 數量改成 3。");
+  setTutorialTarget(bossCountInput);
+});
+
+bossCountInput.addEventListener("input", () => {
+  if (tutorialStep !== "difficulty" || Number(bossCountInput.value) !== 3) {
+    return;
+  }
+
+  setTutorialMessage("很好！現在按完成。", "設定中");
+  tutorialNextBtn.hidden = true;
+  setTutorialTarget(closeDifficultyBtn);
+});
+
+closeDifficultyBtn.addEventListener("click", () => {
+  if (tutorialStep !== "difficulty" || Number(bossCountInput.value) !== 3) {
+    return;
+  }
+
+  setTutorialMessage("現在按開始，進入第一場挑戰！");
+  tutorialNextBtn.hidden = true;
+  difficultyModal.classList.remove("tutorial-modal");
+  setTutorialTarget(startBtn);
+});
+
+startBtn.addEventListener("click", () => {
+  if (tutorialStep === "difficulty" && Number(bossCountInput.value) === 3) {
+    finishTutorialForNow();
+  }
+});
+
+replayTutorialBtn.addEventListener("click", () => {
+  saveEditorModal.classList.remove("is-active");
+  tutorialStep = "intro";
+  saveGame();
+  showTutorialIntro();
 });
 
 function bindMobileVolumeSlider(input, setter) {
@@ -2976,4 +3427,6 @@ updateDifficultyInfo();
 updateMoneyText();
 if (tutorialStep === "intro") {
   showTutorialIntro();
+} else if (tutorialStep === "difficulty") {
+  showDifficultyTutorial();
 }

@@ -40,6 +40,7 @@
           <button id="sfxSoundToggleBtn" class="mobile-sound-toggle" type="button"></button>
         </label>
       </div>
+      <button id="deleteAccountBtn" class="delete-account-button" type="button">刪除帳號</button>
       <h1>愛的家の小遊戲</h1>
       <div class="lobby-hero-wrap">
         <img id="equippedWeapon" class="lobby-equipment equip-weapon" src="outputs/空武器圖.png" alt="空武器">
@@ -60,7 +61,7 @@
         <span id="multiplierText">倍率：1.0x</span>
         <span id="rewardText">會獲得的東西：金錢100</span>
       </button>
-      <div class="game-version">版本 1.16</div>
+      <div class="game-version">版本 1.17</div>
       <button id="startBtn" class="primary-button" type="button">開始</button>
       <div class="death-warning-text">死亡會掉落身上全部裝備</div>
 
@@ -269,6 +270,16 @@
       <div class="tutorial-speaker"></div>
       <p id="tutorialText"></p>
       <button id="tutorialNextBtn" class="tutorial-next-button" type="button">繼續</button>
+    </div>
+  </div>
+
+  <div id="deleteAccountModal" class="delete-account-modal">
+    <div class="delete-account-box">
+      <p>確定要刪除帳號嗎？</p>
+      <div>
+        <button id="cancelDeleteAccountBtn" class="small-button" type="button">取消</button>
+        <button id="confirmDeleteAccountBtn" class="delete-confirm-button" type="button">確定刪除</button>
+      </div>
     </div>
   </div>
 

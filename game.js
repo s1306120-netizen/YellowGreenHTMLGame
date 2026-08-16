@@ -44,6 +44,10 @@ const multiplierText = document.getElementById("multiplierText");
 const rewardText = document.getElementById("rewardText");
 const moneyText = document.getElementById("moneyText");
 const volumeToggleBtn = document.getElementById("volumeToggleBtn");
+const deleteAccountBtn = document.getElementById("deleteAccountBtn");
+const deleteAccountModal = document.getElementById("deleteAccountModal");
+const cancelDeleteAccountBtn = document.getElementById("cancelDeleteAccountBtn");
+const confirmDeleteAccountBtn = document.getElementById("confirmDeleteAccountBtn");
 const volumeControls = document.getElementById("volumeControls");
 const bgVolumeInput = document.getElementById("bgVolumeInput");
 const sfxVolumeInput = document.getElementById("sfxVolumeInput");
@@ -3387,6 +3391,19 @@ sfxVolumeInput.addEventListener("touchmove", (event) => {
 
 volumeToggleBtn.addEventListener("click", () => {
   volumeControls.classList.toggle("is-open");
+});
+
+deleteAccountBtn.addEventListener("click", () => {
+  deleteAccountModal.classList.add("is-open");
+});
+
+cancelDeleteAccountBtn.addEventListener("click", () => {
+  deleteAccountModal.classList.remove("is-open");
+});
+
+confirmDeleteAccountBtn.addEventListener("click", () => {
+  localStorage.removeItem(saveKey);
+  location.reload();
 });
 
 bgSoundToggleBtn.addEventListener("click", () => {

@@ -194,6 +194,25 @@ h1 {
   font-weight: 500;
 }
 
+.recommendation-text {
+  display: none;
+  line-height: 1.45;
+}
+
+.recommendation-text.is-visible {
+  display: grid;
+}
+
+.recommendation-good {
+  color: #218236;
+  font-weight: 800;
+}
+
+.recommendation-bad {
+  color: #b51616;
+  font-weight: 800;
+}
+
 .volume-toggle-button {
   position: absolute;
   top: 46px;
@@ -1133,11 +1152,65 @@ h2 {
   max-width: 70%;
   z-index: 2;
   opacity: 0;
-  transition: top 620ms linear, opacity 120ms ease;
+  transition: top 1240ms linear, opacity 120ms ease;
 }
 
 .bullet.is-active {
   opacity: 1;
+}
+
+.bullet.is-normal-pig-left {
+  animation: normal-pig-curve-right 1100ms linear;
+}
+
+.bullet.is-normal-pig-right {
+  animation: normal-pig-curve-left 1100ms linear;
+}
+
+.bullet.is-normal-pig-middle {
+  animation: normal-pig-straight 620ms linear;
+}
+
+@keyframes normal-pig-straight {
+  from {
+    top: 7px;
+  }
+
+  to {
+    top: var(--bullet-y);
+  }
+}
+
+@keyframes normal-pig-curve-right {
+  0% {
+    top: 7px;
+    transform: translateX(-50%) translateX(0);
+  }
+
+  50% {
+    transform: translateX(-50%) translateX(var(--normal-pig-curve));
+  }
+
+  100% {
+    top: var(--bullet-y);
+    transform: translateX(-50%) translateX(0);
+  }
+}
+
+@keyframes normal-pig-curve-left {
+  0% {
+    top: 7px;
+    transform: translateX(-50%) translateX(0);
+  }
+
+  50% {
+    transform: translateX(-50%) translateX(var(--normal-pig-curve-negative));
+  }
+
+  100% {
+    top: var(--bullet-y);
+    transform: translateX(-50%) translateX(0);
+  }
 }
 
 .bubble-weapon {

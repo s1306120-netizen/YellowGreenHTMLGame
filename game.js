@@ -42,6 +42,7 @@ const difficultyText = document.getElementById("difficultyText");
 const bossCountText = document.getElementById("bossCountText");
 const multiplierText = document.getElementById("multiplierText");
 const rewardText = document.getElementById("rewardText");
+const recommendationText = document.getElementById("recommendationText");
 const moneyText = document.getElementById("moneyText");
 const volumeToggleBtn = document.getElementById("volumeToggleBtn");
 const deleteAccountBtn = document.getElementById("deleteAccountBtn");
@@ -220,6 +221,7 @@ const bossData = [
   { name: "小豬", difficulty: "簡單", hp: 100, defense: 0 },
   { name: "泡泡", difficulty: "簡單", hp: 100, defense: 5 },
   { name: "格格", difficulty: "簡單", hp: 150, defense: 0 },
+  { name: "普通小豬", displayName: "小豬", difficulty: "普通", hp: 350, defense: 15 },
 ];
 const tutorialBossSequence = ["小豬", "泡泡", "格格"];
 
@@ -607,6 +609,17 @@ function updateDifficultyInfo() {
   bossCountText.textContent = `BOSS：${bossCount} 隻`;
   multiplierText.textContent = `倍率：${multiplier.toFixed(1)}x`;
   rewardText.textContent = `戰利品：金錢${reward}、${bagDropChance}%獲得${lootName}*${bossCount}`;
+
+  if (difficultySelect.value === "普通") {
+    const cooldownClass = playerStats.moveCooldown <= 500 ? "recommendation-good" : "recommendation-bad";
+    const pierceClass = playerStats.pierce >= 10 ? "recommendation-good" : "recommendation-bad";
+
+    recommendationText.innerHTML = `建議<br><span class="${cooldownClass}">移動冷卻：0.5秒</span><span class="${pierceClass}">破防：10</span>`;
+    recommendationText.classList.add("is-visible");
+  } else {
+    recommendationText.textContent = "";
+    recommendationText.classList.remove("is-visible");
+  }
 }
 
 function updateHeroStatsList() {
@@ -1068,6 +1081,8 @@ function recalculatePlayerStats() {
       applyEquipmentEffect(item);
     }
   });
+
+  updateDifficultyInfo();
 }
 
 function updateEquippedImages() {
@@ -2120,11 +2135,16 @@ function getBattleReward() {
 }
 
 function resetBullet() {
-  bullet.classList.remove("is-active");
+  bullet.classList.remove("is-active", "is-normal-pig-left", "is-normal-pig-right", "is-normal-pig-middle");
+  bullet.style.transition = "none";
   bullet.style.removeProperty("top");
-  bullet.style.removeProperty("transition");
+  bullet.style.removeProperty("--normal-pig-curve");
+  bullet.style.removeProperty("--normal-pig-curve-negative");
   bullet.style.setProperty("--bullet-y", "7px");
   bullet.style.setProperty("--bullet-lane", bulletLane);
+  bullet.style.left = `${(bulletLane + 0.5) * (100 / 3)}%`;
+  void bullet.offsetWidth;
+  bullet.style.removeProperty("transition");
 }
 
 function pauseTutorialDodge(message) {
@@ -2305,7 +2325,7 @@ function movePlayer(horizontal, vertical = 0) {
       bulletEndTimer = setTimeout(() => {
         resetBullet();
         startEnemyActions();
-      }, 620);
+      }, 1240);
     } else {
       resetBullet();
       startEnemyActions();
@@ -2656,7 +2676,8 @@ function startBossIntro() {
   bossIntro.className = "boss-intro is-active";
 
   bossIntroTimer = setTimeout(() => {
-    bossIntro.textContent = currentBossName;
+    const boss = bossData.find((entry) => entry.name === currentBossName);
+    bossIntro.textContent = boss?.displayName || currentBossName;
     bossIntro.classList.add("is-name");
 
     bossIntroTimer = setTimeout(() => {
@@ -2910,11 +2931,23 @@ function shootBullet() {
     const bulletEndY = arena.clientHeight - bullet.offsetHeight;
 
     bullet.classList.add("is-active");
+    if (currentBossName === "普通小豬") {
+      const curveDistance = arena.clientWidth * 0.55;
+      bullet.style.setProperty("--normal-pig-curve", `${curveDistance}px`);
+      bullet.style.setProperty("--normal-pig-curve-negative", `-${curveDistance}px`);
+      if (bulletLane === 0) {
+        bullet.classList.add("is-normal-pig-left");
+      } else if (bulletLane === 2) {
+        bullet.classList.add("is-normal-pig-right");
+      } else {
+        bullet.classList.add("is-normal-pig-middle");
+      }
+    }
     playSound(pigAttackSound);
     bullet.style.setProperty("--bullet-y", `${bulletEndY}px`);
     enemy.src = `outputs/${currentBossName}.png`;
     hitAnimation = requestAnimationFrame(watchBulletHit);
-    bulletEndTimer = setTimeout(resetBullet, 620);
+    bulletEndTimer = setTimeout(resetBullet, 1240);
   }, 500);
 }
 

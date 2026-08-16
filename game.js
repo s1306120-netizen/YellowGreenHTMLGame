@@ -230,6 +230,13 @@ const bagRarities = [
   { name: "傳奇", image: "outputs/傳奇袋子.png", scale: 1.95 },
 ];
 
+const chestRarities = [
+  { name: "普通", image: "outputs/普通箱子.png", scale: 1 },
+  { name: "稀有", image: "outputs/稀有箱子.png", scale: 1.25 },
+  { name: "史詩", image: "outputs/史詩箱子.png", scale: 1.55 },
+  { name: "傳奇", image: "outputs/傳奇箱子.png", scale: 1.95 },
+];
+
 const equipmentData = [
   { name: "破舊木劍", type: "武器", rarity: "普通", effect: "攻擊力+5 破防+0", image: "outputs/破舊木劍圖(武器).png" },
   { name: "標準木劍", type: "武器", rarity: "普通", effect: "攻擊力+10 破防+1", image: "outputs/標準木劍圖(武器).png" },
@@ -555,6 +562,7 @@ const enemyImages = [
   "outputs/空裝備格子圖.png",
   ...enemyImages,
   ...bagRarities.map((bag) => bag.image),
+  ...chestRarities.map((chest) => chest.image),
   ...equipmentData.map((item) => item.image),
 ].forEach(preloadImage);
 
@@ -591,13 +599,14 @@ function updateDifficultyInfo() {
   const bossCount = Math.max(1, Number(bossCountInput.value));
   const reward = rewardByDifficulty[difficultySelect.value] * bossCount * multiplier;
   const bagDropChance = Math.min(100, 20 * multiplier);
+  const lootName = difficultySelect.value === "普通" ? "箱子" : "袋子";
 
   multiplierInput.value = multiplier.toFixed(1);
   bossCountInput.value = bossCount;
   difficultyText.textContent = `難度：${difficultySelect.value}`;
   bossCountText.textContent = `BOSS：${bossCount} 隻`;
   multiplierText.textContent = `倍率：${multiplier.toFixed(1)}x`;
-  rewardText.textContent = `戰利品：金錢${reward}、${bagDropChance}%獲得袋子*${bossCount}`;
+  rewardText.textContent = `戰利品：金錢${reward}、${bagDropChance}%獲得${lootName}*${bossCount}`;
 }
 
 function updateHeroStatsList() {
@@ -1859,9 +1868,43 @@ function renderBlacksmith() {
   renderForgeSlots();
 }
 
-function openBagRewardByRarity(rarityIndex) {
-  const rarityName = bagRarities[rarityIndex].name;
+function getLootRarities(loot) {
+  return loot?.kind === "chest" ? chestRarities : bagRarities;
+}
+
+function getLootName(loot) {
+  return loot?.kind === "chest" ? "箱子" : "袋子";
+}
+
+function openBagRewardByRarity(rarityIndex, kind = "bag") {
+  const rarityName = getLootRarities({ kind })[rarityIndex].name;
   const roll = Math.random() * 100;
+
+  if (kind === "chest") {
+    if (rarityName === "普通") {
+      if (roll < 25) return { type: "money", amount: 2000, text: "獲得金錢 2000" };
+      return { type: "equipment", item: getRandomEquipment(roll < 65 ? "普通" : "稀有") };
+    }
+
+    if (rarityName === "稀有") {
+      if (roll < 20) return { type: "money", amount: 4000, text: "獲得金錢 4000" };
+      if (roll < 30) return { type: "equipment", item: getRandomEquipment("普通") };
+      if (roll < 80) return { type: "equipment", item: getRandomEquipment("稀有") };
+      return { type: "equipment", item: getRandomEquipment("史詩") };
+    }
+
+    if (rarityName === "史詩") {
+      if (roll < 20) return { type: "money", amount: 10000, text: "獲得金錢 10000" };
+      if (roll < 40) return { type: "equipment", item: getRandomEquipment("稀有") };
+      if (roll < 80) return { type: "equipment", item: getRandomEquipment("史詩") };
+      return { type: "equipment", item: getRandomEquipment("傳奇") };
+    }
+
+    if (rarityName === "傳奇") {
+      if (roll < 10) return { type: "money", amount: 20000, text: "獲得金錢 20000" };
+      return { type: "equipment", item: getRandomEquipment(roll < 60 ? "史詩" : "傳奇") };
+    }
+  }
 
   if (rarityName === "普通") {
     if (roll < 25) {
@@ -1935,7 +1978,7 @@ function collectBagReward(bag) {
     };
   }
 
-  const reward = openBagRewardByRarity(bag.rarityIndex);
+  const reward = openBagRewardByRarity(bag.rarityIndex, bag.kind);
 
   if (reward.type === "money") {
     pendingMoney += reward.amount;
@@ -2043,6 +2086,8 @@ function showBattleSuccessText(text) {
 }
 
 function showBagDropText() {
+  const latestLoot = battleBags[battleBags.length - 1];
+  bagDropText.textContent = `獲得${getLootName(latestLoot)}`;
   bagDropText.classList.remove("is-active");
 
   void bagDropText.offsetWidth;
@@ -2390,14 +2435,20 @@ function tryDeathSave() {
 }
 
 function rollBossBagDrop() {
-  if (difficultySelect.value !== "簡單") {
+  const kind = difficultySelect.value === "簡單"
+    ? "bag"
+    : difficultySelect.value === "普通"
+      ? "chest"
+      : null;
+
+  if (!kind) {
     return false;
   }
 
   const dropChance = Math.min(100, 20 * battleMultiplier);
 
   if (Math.random() * 100 < dropChance) {
-    battleBags.push({ rarityIndex: 0, upgraded: false });
+    battleBags.push({ kind, rarityIndex: 0, upgraded: false });
     return true;
   }
 
@@ -2428,20 +2479,24 @@ function upgradeBag(index) {
 }
 
 function updateResultBags() {
-  resultBagText.textContent = `獲得袋子：${battleBags.length}`;
+  const firstLoot = battleBags[0];
+  const lootName = getLootName(firstLoot);
+
+  resultBagText.textContent = `獲得${lootName}：${battleBags.length}`;
   resultBagList.innerHTML = "";
 
   battleBags.forEach((bag, index) => {
-    const rarity = bagRarities[0];
+    const rarity = getLootRarities(bag)[0];
+    const itemName = getLootName(bag);
     const button = document.createElement("button");
     const image = document.createElement("img");
 
     button.className = "bag-upgrade-button";
     button.type = "button";
     button.disabled = true;
-    button.setAttribute("aria-label", `普通袋子`);
+    button.setAttribute("aria-label", `普通${itemName}`);
     image.src = rarity.image;
-    image.alt = `普通袋子`;
+    image.alt = `普通${itemName}`;
     button.appendChild(image);
     resultBagList.appendChild(button);
   });
@@ -2449,15 +2504,16 @@ function updateResultBags() {
 
 function updateOpenBagScreen() {
   const bag = battleBags[openingBagIndex];
-  const rarity = bagRarities[bag.rarityIndex];
+  const rarity = getLootRarities(bag)[bag.rarityIndex];
+  const itemName = getLootName(bag);
 
   openBagImage.src = rarity.image;
-  openBagImage.alt = `${rarity.name}袋子`;
+  openBagImage.alt = `${rarity.name}${itemName}`;
   openBagImage.style.setProperty("--bag-scale", rarity.scale);
   openBagReward.textContent = "";
   openBagRarity.textContent = rarity.name;
   openBagRarity.className = `open-bag-rarity rarity-${bag.rarityIndex}`;
-  openBagProgress.textContent = `袋子 ${openingBagIndex + 1}/${battleBags.length}　點擊 ${openingBagClicks}/4`;
+  openBagProgress.textContent = `${itemName} ${openingBagIndex + 1}/${battleBags.length}　點擊 ${openingBagClicks}/4`;
 }
 
 function upgradeBagByClick(bag, clickCount) {

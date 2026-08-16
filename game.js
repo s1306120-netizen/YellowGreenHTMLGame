@@ -2159,7 +2159,7 @@ function resetBoss() {
     return false;
   }
 
-  totalBossCount = Math.max(1, Number(bossCountInput.value));
+  totalBossCount = tutorialStep === "combat" ? 3 : Math.max(1, Number(bossCountInput.value));
   battleMultiplier = Math.max(1, Math.round(Number(multiplierInput.value) * 2) / 2);
   battleReward = getBattleReward();
   currentBossName = firstBoss.name;
@@ -3182,6 +3182,7 @@ function showBattleTutorialMessage() {
   };
 
   tutorialDialogueMode = "battle";
+  tutorialOverlay.classList.remove("is-pass-through");
   tutorialOverlay.classList.add("is-open");
   tutorialNextBtn.hidden = currentBossName !== "泡泡";
   if (currentBossName === "小豬") {
@@ -3281,6 +3282,15 @@ tutorialOverlay.addEventListener("click", (event) => {
     tutorialNextBtn.click();
   }
 });
+
+document.querySelector(".tutorial-dialogue").addEventListener("click", () => {
+  if (tutorialDialogueMode === "bags") {
+    tutorialDialogueMode = null;
+    tutorialOverlay.classList.remove("is-open");
+  }
+});
+
+tutorialOverlay.addEventListener("dblclick", (event) => event.preventDefault());
 
 difficultyInfo.addEventListener("click", () => {
   if (tutorialStep !== "difficulty") {

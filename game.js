@@ -3,6 +3,7 @@ const gameScreen = document.getElementById("game");
 const bagOpeningScreen = document.getElementById("bagOpening");
 const blacksmithScreen = document.getElementById("blacksmith");
 const startBtn = document.getElementById("startBtn");
+const replayTutorialLobbyBtn = document.getElementById("replayTutorialLobbyBtn");
 const difficultyInfo = document.getElementById("difficultyInfo");
 const bagButton = document.getElementById("bagButton");
 const blacksmithButton = document.getElementById("blacksmithButton");
@@ -1452,6 +1453,7 @@ function openForgePicker(slotIndex) {
   if (tutorialStep === "compose") {
     tutorialOverlay.classList.remove("is-open");
     tutorialOverlay.classList.remove("is-pass-through");
+    tutorialOverlay.classList.remove("is-pass-through");
     tutorialOverlay.classList.remove("is-top");
     clearTutorialTarget();
   }
@@ -2704,6 +2706,7 @@ function shootBullet() {
           tutorialMoveLocked = false;
           tutorialAwaitingDodge = true;
           tutorialOverlay.classList.add("is-open");
+          tutorialOverlay.classList.add("is-pass-through");
           tutorialNextBtn.hidden = true;
           tutorialText.innerHTML = "<span class=\"tutorial-danger\">注意！</span> 子彈飛到中間排了，現在滑動到其他格子躲開！";
         }, 310);
@@ -3324,6 +3327,12 @@ replayTutorialBtn.addEventListener("click", () => {
   showTutorialIntro();
 });
 
+replayTutorialLobbyBtn.addEventListener("click", () => {
+  tutorialStep = "intro";
+  saveGame();
+  showTutorialIntro();
+});
+
 function bindMobileVolumeSlider(input, setter) {
   function setFromPointer(event) {
     const rect = input.getBoundingClientRect();
@@ -3429,4 +3438,8 @@ if (tutorialStep === "intro") {
   showTutorialIntro();
 } else if (tutorialStep === "difficulty") {
   showDifficultyTutorial();
+} else if (tutorialStep === "combat") {
+  tutorialOverlay.classList.add("is-open");
+  tutorialText.textContent = "繼續新手教學，按開始回到戰鬥。";
+  setTutorialTarget(startBtn);
 }

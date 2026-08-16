@@ -61,7 +61,7 @@
         <span id="multiplierText">倍率：1.0x</span>
         <span id="rewardText">會獲得的東西：金錢100</span>
       </button>
-      <div class="game-version">版本 1.18</div>
+      <div class="game-version">版本 1.19</div>
       <button id="startBtn" class="primary-button" type="button">開始</button>
       <div class="death-warning-text">死亡會掉落身上全部裝備</div>
 
@@ -138,6 +138,7 @@
         <div id="blacksmithModeSelect" class="blacksmith-mode-select">
           <button id="openUpgradeModeBtn" class="primary-button" type="button">升級</button>
           <button id="openComposeModeBtn" class="primary-button" type="button">合成</button>
+          <button id="openSmeltModeBtn" class="primary-button" type="button">熔煉</button>
         </div>
 
         <div id="blacksmithComposePanel" class="blacksmith-panel">
@@ -185,6 +186,24 @@
           <button id="upgradeBtn" class="primary-button" type="button">升級<br>花費:</button>
           <div id="upgradeResultText" class="blacksmith-result"></div>
           <button id="upgradeBackBtn" class="small-button" type="button">回大廳</button>
+        </div>
+
+        <div id="blacksmithSmeltPanel" class="blacksmith-panel">
+          <div class="blacksmith-title">
+            <div>熔煉爐</div>
+            <span class="blacksmith-cost-text">#熔煉爐把武器還原成等級1，並取出一路成功升到目前等級的升級費用</span>
+          </div>
+          <button id="smeltInputSlot" class="forge-slot" type="button">
+            <img id="smeltInputImage" src="outputs/空裝備格子圖.png" alt="熔煉材料">
+          </button>
+          <img id="smeltInsideImage" class="blacksmith-inside" src="outputs/熔煉室內部圖.png" alt="熔煉室內部">
+          <img class="smelt-arrow" src="outputs/熔煉箭頭圖.png" alt="熔煉箭頭">
+          <button id="smeltResultSlot" class="forge-slot" type="button">
+            <img id="smeltResultImage" src="outputs/空裝備格子圖.png" alt="熔煉結果">
+          </button>
+          <button id="smeltBtn" class="primary-button" type="button">熔煉</button>
+          <div id="smeltResultText" class="blacksmith-result"></div>
+          <button id="smeltBackBtn" class="small-button" type="button">回大廳</button>
         </div>
 
         <div id="forgePickerModal" class="settings-modal">

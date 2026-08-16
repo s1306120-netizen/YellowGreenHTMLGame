@@ -687,6 +687,20 @@ h2 {
   animation: forge-shop-tilt 520ms ease-in;
 }
 
+.blacksmith-inside.is-smelting {
+  animation: smelt-room-pulse 520ms ease-in-out;
+}
+
+@keyframes smelt-room-pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.22);
+  }
+}
+
 @keyframes forge-shop-tilt {
   0% {
     transform: rotate(0deg);
@@ -704,6 +718,14 @@ h2 {
 .forge-arrow {
   width: 174px;
   height: 138px;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.smelt-arrow {
+  width: 118px;
+  height: 86px;
   object-fit: contain;
   user-select: none;
   -webkit-user-drag: none;

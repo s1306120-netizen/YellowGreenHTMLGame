@@ -92,8 +92,10 @@ const upgradeBlacksmithInsideImage = document.getElementById("upgradeBlacksmithI
 const blacksmithModeSelect = document.getElementById("blacksmithModeSelect");
 const blacksmithComposePanel = document.getElementById("blacksmithComposePanel");
 const blacksmithUpgradePanel = document.getElementById("blacksmithUpgradePanel");
+const blacksmithSmeltPanel = document.getElementById("blacksmithSmeltPanel");
 const openUpgradeModeBtn = document.getElementById("openUpgradeModeBtn");
 const openComposeModeBtn = document.getElementById("openComposeModeBtn");
+const openSmeltModeBtn = document.getElementById("openSmeltModeBtn");
 const blacksmithResult = document.getElementById("blacksmithResult");
 const blacksmithBackBtn = document.getElementById("blacksmithBackBtn");
 const blacksmithResultSlot = document.getElementById("blacksmithResultSlot");
@@ -112,6 +114,14 @@ const upgradeBtn = document.getElementById("upgradeBtn");
 const upgradeResultText = document.getElementById("upgradeResultText");
 const upgradeMoneyText = document.getElementById("upgradeMoneyText");
 const upgradeBackBtn = document.getElementById("upgradeBackBtn");
+const smeltInputSlot = document.getElementById("smeltInputSlot");
+const smeltInputImage = document.getElementById("smeltInputImage");
+const smeltInsideImage = document.getElementById("smeltInsideImage");
+const smeltResultSlot = document.getElementById("smeltResultSlot");
+const smeltResultImage = document.getElementById("smeltResultImage");
+const smeltBtn = document.getElementById("smeltBtn");
+const smeltResultText = document.getElementById("smeltResultText");
+const smeltBackBtn = document.getElementById("smeltBackBtn");
 
 openBagImage.addEventListener("error", () => {
   openBagImage.src = "outputs/空裝備格子圖.png";
@@ -152,6 +162,8 @@ let forgeResultItem = null;
 let forgePickerMode = "compose";
 let upgradeSlot = null;
 let upgradedPendingItem = null;
+let smeltSlot = null;
+let smeltedPendingItem = null;
 let isForging = false;
 let openingBagIndex = 0;
 let openingBagClicks = 0;
@@ -1140,6 +1152,17 @@ function getUpgradeChance(item) {
   return getUpgradeRule(level).chance;
 }
 
+function getSmeltRefund(item) {
+  const currentLevel = Math.max(1, Number(item.level) || 1);
+  let refund = 0;
+
+  for (let level = 1; level < currentLevel; level += 1) {
+    refund += getUpgradeRule(level).costs[item.rarity] || 0;
+  }
+
+  return refund;
+}
+
 function getUpgradeBonusInfo(item) {
   if (item.type === "武器") {
     return { stat: "攻擊力", value: getNextEffectUpgradeAmount(item) };
@@ -1353,7 +1376,7 @@ function showForgeResultText(text, type) {
 }
 
 function getForgePickerItems(slotIndex) {
-  if (forgePickerMode === "upgrade") {
+  if (forgePickerMode === "upgrade" || forgePickerMode === "smelt") {
     return inventory.map((item, index) => ({ item, index }));
   }
 
@@ -1418,6 +1441,17 @@ function renderForgePicker(slotIndex) {
         return;
       }
 
+      if (forgePickerMode === "smelt") {
+        smeltSlot = entry;
+        smeltedPendingItem = null;
+        setEquipmentSlot(smeltInputSlot, smeltInputImage, item, "outputs/空裝備格子圖.png", "熔煉材料");
+        setEquipmentSlot(smeltResultSlot, smeltResultImage, null, "outputs/空裝備格子圖.png", "熔煉結果");
+        showSmeltResultText("", "");
+        updateSmeltUi();
+        forgePickerModal.classList.remove("is-active");
+        return;
+      }
+
       forgeSlots[slotIndex] = entry;
 
       if (slotIndex === 0) {
@@ -1476,10 +1510,17 @@ function openUpgradePicker() {
   forgePickerModal.classList.add("is-active");
 }
 
+function openSmeltPicker() {
+  forgePickerMode = "smelt";
+  renderForgePicker(0);
+  forgePickerModal.classList.add("is-active");
+}
+
 function showBlacksmithMode(mode) {
   blacksmithModeSelect.style.display = mode === "select" ? "grid" : "none";
   blacksmithComposePanel.classList.toggle("is-active", mode === "compose");
   blacksmithUpgradePanel.classList.toggle("is-active", mode === "upgrade");
+  blacksmithSmeltPanel.classList.toggle("is-active", mode === "smelt");
 }
 
 function resetUpgradeSlot() {
@@ -1489,6 +1530,98 @@ function resetUpgradeSlot() {
   setEquipmentSlot(upgradeResultSlot, upgradeResultImage, null, "outputs/空裝備格子圖.png", "升級結果");
   showUpgradeResultText("", "");
   updateUpgradeUi();
+}
+
+function showSmeltResultText(text, type) {
+  smeltResultText.textContent = text;
+  smeltResultText.classList.remove("is-success", "is-fail");
+
+  void smeltResultText.offsetWidth;
+
+  if (type) {
+    smeltResultText.classList.add(type === "success" ? "is-success" : "is-fail");
+  }
+}
+
+function updateSmeltUi() {
+  if (smeltedPendingItem) {
+    smeltBtn.textContent = "確定";
+    return;
+  }
+
+  smeltBtn.innerHTML = smeltSlot ? `熔煉<br>可拿到 ${getSmeltRefund(smeltSlot.item)} 塊` : "熔煉";
+}
+
+function resetSmeltSlot() {
+  smeltSlot = null;
+  smeltedPendingItem = null;
+  setEquipmentSlot(smeltInputSlot, smeltInputImage, null, "outputs/空裝備格子圖.png", "熔煉材料");
+  setEquipmentSlot(smeltResultSlot, smeltResultImage, null, "outputs/空裝備格子圖.png", "熔煉結果");
+  showSmeltResultText("", "");
+  updateSmeltUi();
+}
+
+function collectSmeltResult() {
+  if (!smeltedPendingItem) {
+    return;
+  }
+
+  smeltedPendingItem = null;
+  setEquipmentSlot(smeltResultSlot, smeltResultImage, null, "outputs/空裝備格子圖.png", "熔煉結果");
+  showSmeltResultText("已放回包包", "success");
+  updateSmeltUi();
+  saveGame();
+}
+
+function smeltSelectedItem() {
+  if (smeltedPendingItem) {
+    collectSmeltResult();
+    return;
+  }
+
+  if (isForging) {
+    return;
+  }
+
+  if (!smeltSlot) {
+    showSmeltResultText("請先放入裝備", "fail");
+    return;
+  }
+
+  const item = smeltSlot.item;
+  const itemBeforeSmelt = { ...item };
+  const refund = getSmeltRefund(item);
+  const baseItem = equipmentData.find((entry) => entry.name === item.name && entry.type === item.type);
+
+  isForging = true;
+  smeltBtn.disabled = true;
+  showSmeltResultText("", "");
+  smeltInsideImage.classList.remove("is-smelting");
+  void smeltInsideImage.offsetWidth;
+  smeltInsideImage.classList.add("is-smelting");
+
+  setTimeout(() => {
+    smeltInsideImage.classList.remove("is-smelting");
+    item.level = 1;
+    if (baseItem) {
+      item.effect = baseItem.effect;
+    }
+    money += refund;
+    syncEquippedItemUpgrade(itemBeforeSmelt, item);
+    recalculatePlayerStats();
+    updateMoneyText();
+    updateEquippedImages();
+    updateHeroStatsList();
+    smeltedPendingItem = item;
+    smeltSlot = null;
+    setEquipmentSlot(smeltInputSlot, smeltInputImage, null, "outputs/空裝備格子圖.png", "熔煉材料");
+    setEquipmentSlot(smeltResultSlot, smeltResultImage, item, "outputs/空裝備格子圖.png", "熔煉結果");
+    showSmeltResultText(`熔煉完成，獲得 ${refund} 塊`, "success");
+    updateSmeltUi();
+    saveGame();
+    isForging = false;
+    smeltBtn.disabled = false;
+  }, 520);
 }
 
 function collectUpgradeResult() {
@@ -2916,6 +3049,11 @@ openUpgradeModeBtn.addEventListener("click", () => {
   }
 });
 
+openSmeltModeBtn.addEventListener("click", () => {
+  resetSmeltSlot();
+  showBlacksmithMode("smelt");
+});
+
 blacksmithBackBtn.addEventListener("click", () => {
   collectForgeResult();
   showScreen("lobby");
@@ -2937,8 +3075,11 @@ synthesizeBtn.addEventListener("click", synthesizeForgeSlots);
 
 upgradeInputSlot.addEventListener("click", openUpgradePicker);
 upgradeResultSlot.addEventListener("click", collectUpgradeResult);
+smeltInputSlot.addEventListener("click", openSmeltPicker);
+smeltResultSlot.addEventListener("click", collectSmeltResult);
 
 upgradeBtn.addEventListener("click", upgradeSelectedItem);
+smeltBtn.addEventListener("click", smeltSelectedItem);
 
 closeForgePickerBtn.addEventListener("click", () => {
   forgePickerModal.classList.remove("is-active");
@@ -2946,6 +3087,11 @@ closeForgePickerBtn.addEventListener("click", () => {
 
 forgeSlotButtons.forEach((button, index) => {
   button.addEventListener("click", () => openForgePicker(index));
+});
+
+smeltBackBtn.addEventListener("click", () => {
+  collectSmeltResult();
+  showScreen("lobby");
 });
 
 closeInventoryBtn.addEventListener("click", () => {

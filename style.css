@@ -1363,6 +1363,17 @@ h2 {
 }
 
 @media (max-width: 520px) {
+  .delete-account-button {
+    top: 94px;
+    right: 0;
+    z-index: 32;
+    min-height: 42px;
+    padding: 9px 14px;
+    border: 2px solid #fff;
+    background: #b51616;
+    touch-action: manipulation;
+  }
+
   .volume-controls input {
     display: none;
   }

@@ -2944,10 +2944,16 @@ function shootBullet() {
       }
     }
     playSound(pigAttackSound);
+    if (currentBossName === "小豬") {
+      bullet.style.transition = "top 620ms linear, opacity 120ms ease";
+    }
     bullet.style.setProperty("--bullet-y", `${bulletEndY}px`);
     enemy.src = `outputs/${currentBossName}.png`;
     hitAnimation = requestAnimationFrame(watchBulletHit);
-    bulletEndTimer = setTimeout(resetBullet, 1240);
+    const bulletDuration = currentBossName === "普通小豬"
+      ? bulletLane === 1 ? 620 : 1100
+      : currentBossName === "小豬" ? 620 : 1240;
+    bulletEndTimer = setTimeout(resetBullet, bulletDuration);
   }, 500);
 }
 

@@ -162,6 +162,7 @@ let selectedItemMode = "equip";
 let forgeSlots = [null, null, null];
 let forgePickingSlot = 0;
 let forgeResultItem = null;
+let forgeFailBonus = 0;
 let forgePickerMode = "compose";
 let upgradeSlot = null;
 let upgradedPendingItem = null;
@@ -771,6 +772,7 @@ function normalizeEquipment(savedItem) {
     effect: savedItem.effect,
     image: savedItem.image,
     level: Math.max(1, Number(savedItem.level) || 1),
+    upgradeFailBonus: Math.max(0, Number(savedItem.upgradeFailBonus) || 0),
   };
 }
 
@@ -783,6 +785,7 @@ function saveGame() {
     isSfxSoundEnabled,
     tutorialStep,
     retreatBossByDifficulty,
+    forgeFailBonus,
     inventory,
     equippedItems: Object.fromEntries(
       Object.entries(equippedItems).map(([type, item]) => [type, item])
@@ -822,6 +825,7 @@ function loadGame() {
     retreatBossByDifficulty = saveData.retreatBossByDifficulty && typeof saveData.retreatBossByDifficulty === "object"
       ? saveData.retreatBossByDifficulty
       : {};
+    forgeFailBonus = Math.max(0, Number(saveData.forgeFailBonus) || 0);
     bgVolumeInput.value = Math.round(bgMusicVolume * 100);
     sfxVolumeInput.value = Math.round(sfxVolume * 100);
     applyVolumeSettings();
@@ -1129,6 +1133,11 @@ function updateEquippedImages() {
 }
 
 function equipItem(item) {
+  const previousItem = equippedItems[item.type];
+
+  if (previousItem && previousItem !== item) {
+    previousItem.upgradeFailBonus = 0;
+  }
   equippedItems[item.type] = item;
   recalculatePlayerStats();
   updateEquippedImages();
@@ -1137,6 +1146,9 @@ function equipItem(item) {
 }
 
 function unequipItem(type) {
+  if (equippedItems[type]) {
+    equippedItems[type].upgradeFailBonus = 0;
+  }
   equippedItems[type] = null;
   recalculatePlayerStats();
   updateEquippedImages();
@@ -1199,7 +1211,11 @@ function getUpgradeCost(item) {
 
 function getUpgradeChance(item) {
   const level = Math.max(1, Number(item.level) || 1);
-  return getUpgradeRule(level).chance;
+  return Math.min(100, getUpgradeRule(level).chance + (item.upgradeFailBonus || 0));
+}
+
+function getForgeChance() {
+  return Math.min(100, 50 + forgeFailBonus);
 }
 
 function getSmeltRefund(item) {
@@ -1411,7 +1427,7 @@ function renderForgeSlots() {
     setEquipmentSlot(button, image, entry?.item, "outputs/空裝備格子圖.png", `材料${index + 1}`);
   });
 
-  synthesizeBtn.innerHTML = forgeSlots.every(Boolean) ? "合成<br>50%成功" : "合成";
+  synthesizeBtn.innerHTML = forgeSlots.every(Boolean) ? `合成<br>${getForgeChance()}%成功` : "合成";
 }
 
 function showForgeResultText(text, type) {
@@ -1765,6 +1781,7 @@ function upgradeSelectedItem() {
     if (didUpgrade) {
       item.effect = getUpgradedEffectText(item);
       item.level = (item.level || 1) + 1;
+      item.upgradeFailBonus = 0;
       syncEquippedItemUpgrade(itemBeforeUpgrade, item);
       upgradedPendingItem = item;
       upgradeSlot = null;
@@ -1778,6 +1795,7 @@ function upgradeSelectedItem() {
         setTutorialTarget(upgradeResultSlot);
       }
     } else {
+      item.upgradeFailBonus = (item.upgradeFailBonus || 0) + 5;
       setEquipmentSlot(upgradeResultSlot, upgradeResultImage, null, "outputs/空裝備格子圖.png", "升級結果");
       showUpgradeResultText(`失敗：${item.name} 保持 Lv${item.level || 1}`, "fail");
       playSound(failSound);
@@ -1854,7 +1872,7 @@ function synthesizeForgeSlots() {
 
   const usedIndexes = forgeSlots.map((entry) => entry.index);
   const baseItem = firstSlot.item;
-  const isUpgrade = tutorialStep === "compose" || Math.random() < 0.5 && baseItem.rarity !== "傳奇";
+  const isUpgrade = tutorialStep === "compose" || Math.random() * 100 < getForgeChance();
   const resultItem = isUpgrade
     ? createHigherRarityItem(baseItem)
     : createSameRarityItem(baseItem.type, baseItem.rarity) || { ...baseItem };
@@ -1883,6 +1901,7 @@ function synthesizeForgeSlots() {
       });
     });
     forgeSlots = [null, null, null];
+      forgeFailBonus = isUpgrade ? 0 : forgeFailBonus + 10;
       forgeResultItem = resultItem;
       setEquipmentSlot(blacksmithResultSlot, blacksmithResultImage, resultItem, "outputs/空裝備格子圖.png", "合成結果");
       if (tutorialStep === "compose") {
@@ -1900,6 +1919,7 @@ function synthesizeForgeSlots() {
     recalculatePlayerStats();
     updateEquippedImages();
     renderForgeSlots();
+    saveGame();
     isForging = false;
     synthesizeBtn.disabled = false;
   }, 520);

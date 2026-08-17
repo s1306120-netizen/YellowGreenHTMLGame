@@ -99,6 +99,7 @@ const blacksmithSmeltPanel = document.getElementById("blacksmithSmeltPanel");
 const openUpgradeModeBtn = document.getElementById("openUpgradeModeBtn");
 const openComposeModeBtn = document.getElementById("openComposeModeBtn");
 const openSmeltModeBtn = document.getElementById("openSmeltModeBtn");
+const blacksmithSelectBackBtn = document.getElementById("blacksmithSelectBackBtn");
 const blacksmithResult = document.getElementById("blacksmithResult");
 const blacksmithBackBtn = document.getElementById("blacksmithBackBtn");
 const shopItemSlot = document.getElementById("shopItemSlot");
@@ -247,7 +248,7 @@ const bossData = [
   { name: "普通小豬", displayName: "小豬", difficulty: "普通", hp: 350, defense: 15 },
 ];
 const tutorialBossSequence = ["小豬", "泡泡", "格格"];
-const rewardBossData = { name: "寶箱", hp: 150, defense: 0 };
+const rewardBossData = { name: "寶箱", hp: 50, defense: 0 };
 
 function getBossImageName() {
   if (currentBossName === "普通泡泡") return "泡泡";
@@ -2950,7 +2951,7 @@ function finishBossDefeat() {
       isRewardStage = true;
       currentBossName = rewardBossData.name;
       currentBossDefense = rewardBossData.defense;
-      bossMaxHp = Math.round(rewardBossData.hp * battleMultiplier);
+      bossMaxHp = rewardBossData.hp;
       bossHp = bossMaxHp;
       enemy.classList.remove("is-defeated");
       enemy.src = "outputs/寶箱.png";
@@ -3579,6 +3580,8 @@ openSmeltModeBtn.addEventListener("click", () => {
   resetSmeltSlot();
   showBlacksmithMode("smelt");
 });
+
+blacksmithSelectBackBtn.addEventListener("click", () => showScreen("lobby"));
 
 blacksmithBackBtn.addEventListener("click", () => {
   collectForgeResult();

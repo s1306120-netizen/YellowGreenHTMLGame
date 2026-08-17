@@ -177,6 +177,7 @@ let shopItem = null;
 let shopRefreshAt = 0;
 let shopRefreshTimer = null;
 let shopTimedModeVersion = 0;
+let shopRefreshRemaining = 3 * 60 * 1000;
 let forgePickerMode = "compose";
 let upgradeSlot = null;
 let upgradedPendingItem = null;
@@ -804,7 +805,7 @@ function saveGame() {
     retreatBossByDifficulty,
     forgeFailBonus,
     shopItem,
-    shopRefreshAt,
+    shopRefreshRemaining: Math.max(0, shopRefreshAt - Date.now()),
     shopTimedModeVersion,
     inventory,
     equippedItems: Object.fromEntries(
@@ -847,7 +848,8 @@ function loadGame() {
       : {};
     forgeFailBonus = Math.max(0, Number(saveData.forgeFailBonus) || 0);
     shopItem = normalizeEquipment(saveData.shopItem);
-    shopRefreshAt = Math.max(0, Number(saveData.shopRefreshAt) || 0);
+    shopRefreshAt = 0;
+    shopRefreshRemaining = Math.max(0, Number(saveData.shopRefreshRemaining) || 3 * 60 * 1000);
     shopTimedModeVersion = Number(saveData.shopTimedModeVersion) || 0;
     bgVolumeInput.value = Math.round(bgMusicVolume * 100);
     sfxVolumeInput.value = Math.round(sfxVolume * 100);
@@ -1458,9 +1460,9 @@ function createShopItem() {
   const type = getRandomItem(Object.keys(typeOrder));
   const item = { ...getRandomItem(equipmentData.filter((entry) => entry.type === type && entry.rarity === rarity)), level: 1, upgradeFailBonus: 0 };
   const levelRoll = Math.random() * 100;
-  const level = levelRoll < 50 ? 1 + Math.floor(Math.random() * 5)
-    : levelRoll < 70 ? 6 + Math.floor(Math.random() * 5)
-      : levelRoll < 90 ? 11 + Math.floor(Math.random() * 5)
+  const level = levelRoll < 60 ? 1 + Math.floor(Math.random() * 5)
+    : levelRoll < 80 ? 6 + Math.floor(Math.random() * 5)
+      : levelRoll < 95 ? 11 + Math.floor(Math.random() * 5)
         : 16 + Math.floor(Math.random() * 5);
 
   while (item.level < level) {
@@ -1495,12 +1497,14 @@ function scheduleShopRefresh() {
 }
 
 function refreshShopIfNeeded() {
-  if (shopTimedModeVersion !== 1) {
+  if (shopTimedModeVersion !== 2) {
     shopItem = null;
-    shopRefreshAt = Date.now() + shopRefreshInterval;
-    shopTimedModeVersion = 1;
-  } else if (!shopRefreshAt) {
-    shopRefreshAt = Date.now() + shopRefreshInterval;
+    shopRefreshRemaining = shopRefreshInterval;
+    shopTimedModeVersion = 2;
+  }
+
+  if (!shopRefreshAt) {
+    shopRefreshAt = Date.now() + shopRefreshRemaining;
   } else if (Date.now() >= shopRefreshAt) {
     shopItem = createShopItem();
     shopRefreshAt = Date.now() + shopRefreshInterval;
@@ -3555,6 +3559,8 @@ shopButton.addEventListener("click", () => {
 
 shopBuyBtn.addEventListener("click", buyShopItem);
 shopBackBtn.addEventListener("click", () => showScreen("lobby"));
+
+window.addEventListener("pagehide", saveGame);
 
 openComposeModeBtn.addEventListener("click", () => {
   renderBlacksmith();

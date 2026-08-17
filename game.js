@@ -2371,17 +2371,16 @@ function shootNormalGageAttack() {
 
   scheduleGageAction(() => {
     hazard.stage = "warning";
+    hazard.visual.remove();
     updateNormalGageCells();
   }, 1000);
   scheduleGageAction(() => {
     hazard.stage = "yellow";
-    hazard.visual.src = "outputs/格格攻擊圖2.png";
     updateNormalGageCells();
     playSound(gageAttackSound2);
   }, 1500);
   scheduleGageAction(() => {
     hazard.stage = "red";
-    hazard.visual.src = "outputs/格格攻擊圖3.png";
     updateNormalGageCells();
     playSound(gageAttackSound3);
     checkGageHazard();

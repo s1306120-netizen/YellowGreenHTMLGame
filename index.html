@@ -23,6 +23,9 @@
       <button id="blacksmithButton" class="blacksmith-button" type="button">
         <img src="outputs/鐵匠鋪圖.png" alt="鐵匠鋪">
       </button>
+      <button id="shopButton" class="shop-button" type="button">
+        <img src="outputs/商店鋪圖.png" alt="商店鋪">
+      </button>
       <div class="money-display">
         <img class="money-icon" src="outputs/錢.png" alt="錢">
         <span id="moneyText">0</span>
@@ -62,7 +65,7 @@
         <span id="rewardText">會獲得的東西：金錢100</span>
         <span id="recommendationText" class="recommendation-text"></span>
       </button>
-      <div class="game-version">版本 1.31</div>
+      <div class="game-version">版本 1.32</div>
       <button id="startBtn" class="primary-button" type="button">開始</button>
       <div class="death-warning-text">死亡會掉落身上全部裝備</div>
 
@@ -214,6 +217,26 @@
             <button id="closeForgePickerBtn" class="small-button" type="button">關閉</button>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section id="shop" class="screen">
+      <div class="shop-screen">
+        <div class="shop-title">
+          <div>怪物商店</div>
+          <span>這裡每三分鐘就會刷新超便宜二手商品!</span>
+        </div>
+        <div class="shop-inside-wrap">
+          <img class="shop-inside" src="outputs/商店鋪內部圖.png" alt="商店鋪內部">
+          <button id="shopItemSlot" class="forge-slot shop-item-slot" type="button">
+            <img id="shopItemImage" src="outputs/空裝備格子圖.png" alt="商店商品">
+          </button>
+        </div>
+        <div id="shopRefreshText" class="shop-refresh-text">商品準備中</div>
+        <div id="shopPriceText" class="shop-refresh-text">售價:--</div>
+        <button id="shopBuyBtn" class="primary-button" type="button" disabled>購買</button>
+        <div id="shopResultText" class="blacksmith-result"></div>
+        <button id="shopBackBtn" class="small-button" type="button">返回</button>
       </div>
     </section>
 

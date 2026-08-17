@@ -156,6 +156,7 @@ button {
 }
 
 #blacksmith.screen-active,
+#shop.screen-active,
 #bagOpening.screen-active {
   display: grid;
   place-items: center;
@@ -345,6 +346,24 @@ h1 {
 }
 
 .blacksmith-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.shop-button {
+  position: absolute;
+  top: 0;
+  left: 176px;
+  width: 80px;
+  height: 80px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.shop-button img {
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -643,6 +662,58 @@ h2 {
   justify-items: center;
   align-content: center;
   gap: 12px;
+  text-align: center;
+}
+
+.shop-screen {
+  position: relative;
+  width: min(100%, 420px);
+  min-height: 70vh;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.shop-title {
+  display: grid;
+  gap: 4px;
+  font-size: 34px;
+  font-weight: 800;
+}
+
+.shop-title span {
+  font-size: 16px;
+  font-weight: 500;
+}
+
+.shop-inside-wrap {
+  position: relative;
+  width: min(200%, 720px);
+}
+
+.shop-inside {
+  display: block;
+  width: 100%;
+  max-height: 440px;
+  object-fit: contain;
+}
+
+.shop-inside-wrap .shop-item-slot {
+  position: absolute;
+  top: 50%;
+  left: 53%;
+  transform: translate(-50%, -50%);
+  width: 76px;
+  height: 76px;
+}
+
+.shop-refresh-text {
+  width: 100%;
+  min-height: 22px;
+  font-size: 15px;
+  font-weight: 700;
   text-align: center;
 }
 
@@ -1529,7 +1600,8 @@ h2 {
   }
 
   .bag-button,
-  .blacksmith-button {
+  .blacksmith-button,
+  .shop-button {
     top: 6px;
     width: 68px;
     height: 68px;
@@ -1537,6 +1609,10 @@ h2 {
 
   .blacksmith-button {
     left: 72px;
+  }
+
+  .shop-button {
+    left: 138px;
   }
 
   #game.screen-active {

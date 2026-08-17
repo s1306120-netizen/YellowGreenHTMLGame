@@ -2,10 +2,12 @@ const lobbyScreen = document.getElementById("lobby");
 const gameScreen = document.getElementById("game");
 const bagOpeningScreen = document.getElementById("bagOpening");
 const blacksmithScreen = document.getElementById("blacksmith");
+const shopScreen = document.getElementById("shop");
 const startBtn = document.getElementById("startBtn");
 const difficultyInfo = document.getElementById("difficultyInfo");
 const bagButton = document.getElementById("bagButton");
 const blacksmithButton = document.getElementById("blacksmithButton");
+const shopButton = document.getElementById("shopButton");
 const difficultyModal = document.getElementById("difficultyModal");
 const heroInfoModal = document.getElementById("heroInfoModal");
 const inventoryModal = document.getElementById("inventoryModal");
@@ -99,6 +101,13 @@ const openComposeModeBtn = document.getElementById("openComposeModeBtn");
 const openSmeltModeBtn = document.getElementById("openSmeltModeBtn");
 const blacksmithResult = document.getElementById("blacksmithResult");
 const blacksmithBackBtn = document.getElementById("blacksmithBackBtn");
+const shopItemSlot = document.getElementById("shopItemSlot");
+const shopItemImage = document.getElementById("shopItemImage");
+const shopRefreshText = document.getElementById("shopRefreshText");
+const shopPriceText = document.getElementById("shopPriceText");
+const shopBuyBtn = document.getElementById("shopBuyBtn");
+const shopResultText = document.getElementById("shopResultText");
+const shopBackBtn = document.getElementById("shopBackBtn");
 const blacksmithResultSlot = document.getElementById("blacksmithResultSlot");
 const blacksmithResultImage = document.getElementById("blacksmithResultImage");
 const synthesizeBtn = document.getElementById("synthesizeBtn");
@@ -163,6 +172,10 @@ let forgeSlots = [null, null, null];
 let forgePickingSlot = 0;
 let forgeResultItem = null;
 let forgeFailBonus = 0;
+let shopItem = null;
+let shopRefreshAt = 0;
+let shopRefreshTimer = null;
+let shopTimedModeVersion = 0;
 let forgePickerMode = "compose";
 let upgradeSlot = null;
 let upgradedPendingItem = null;
@@ -558,7 +571,7 @@ function switchMusic(screen) {
     return;
   }
 
-  if (screen === "lobby" || screen === "blacksmith") {
+  if (screen === "lobby" || screen === "blacksmith" || screen === "shop") {
     playMusic(lobbyMusic);
   }
 }
@@ -588,6 +601,8 @@ const enemyImages = [
   "outputs/O.png",
   "outputs/錢.png",
   "outputs/空裝備格子圖.png",
+  "outputs/商店鋪圖.png",
+  "outputs/商店鋪內部圖.png",
   ...enemyImages,
   ...bagRarities.map((bag) => bag.image),
   ...chestRarities.map((chest) => chest.image),
@@ -600,6 +615,7 @@ function showScreen(screen) {
   gameScreen.classList.toggle("screen-active", screen === "game");
   bagOpeningScreen.classList.toggle("screen-active", screen === "bagOpening");
   blacksmithScreen.classList.toggle("screen-active", screen === "blacksmith");
+  shopScreen.classList.toggle("screen-active", screen === "shop");
   switchMusic(screen);
 }
 
@@ -786,6 +802,9 @@ function saveGame() {
     tutorialStep,
     retreatBossByDifficulty,
     forgeFailBonus,
+    shopItem,
+    shopRefreshAt,
+    shopTimedModeVersion,
     inventory,
     equippedItems: Object.fromEntries(
       Object.entries(equippedItems).map(([type, item]) => [type, item])
@@ -826,6 +845,9 @@ function loadGame() {
       ? saveData.retreatBossByDifficulty
       : {};
     forgeFailBonus = Math.max(0, Number(saveData.forgeFailBonus) || 0);
+    shopItem = normalizeEquipment(saveData.shopItem);
+    shopRefreshAt = Math.max(0, Number(saveData.shopRefreshAt) || 0);
+    shopTimedModeVersion = Number(saveData.shopTimedModeVersion) || 0;
     bgVolumeInput.value = Math.round(bgMusicVolume * 100);
     sfxVolumeInput.value = Math.round(sfxVolume * 100);
     applyVolumeSettings();
@@ -1417,6 +1439,95 @@ function createSameRarityItem(type, rarity) {
   }
 
   return null;
+}
+
+const shopRefreshInterval = 3 * 60 * 1000;
+const shopPrices = { "普通": 100, "稀有": 300, "史詩": 1500, "傳奇": 3000 };
+
+function getShopPrice(item) {
+  return shopPrices[item?.rarity] || 0;
+}
+
+function createShopItem() {
+  const rarityRoll = Math.random() * 100;
+  const rarity = rarityRoll < 61 ? "普通"
+    : rarityRoll < 87 ? "稀有"
+      : rarityRoll < 97 ? "史詩"
+        : "傳奇";
+  const type = getRandomItem(Object.keys(typeOrder));
+  const item = { ...getRandomItem(equipmentData.filter((entry) => entry.type === type && entry.rarity === rarity)), level: 1, upgradeFailBonus: 0 };
+  const levelRoll = Math.random() * 100;
+  const level = levelRoll < 50 ? 1 + Math.floor(Math.random() * 5)
+    : levelRoll < 70 ? 6 + Math.floor(Math.random() * 5)
+      : levelRoll < 90 ? 11 + Math.floor(Math.random() * 5)
+        : 16 + Math.floor(Math.random() * 5);
+
+  while (item.level < level) {
+    item.effect = getUpgradedEffectText(item);
+    item.level += 1;
+  }
+
+  return item;
+}
+
+function showShopResult(text, type = "") {
+  shopResultText.textContent = text;
+  shopResultText.classList.remove("is-success", "is-fail");
+  if (type) {
+    shopResultText.classList.add(type === "success" ? "is-success" : "is-fail");
+  }
+}
+
+function updateShopUi() {
+  setEquipmentSlot(shopItemSlot, shopItemImage, shopItem, "outputs/空裝備格子圖.png", "商店商品");
+  shopBuyBtn.disabled = !shopItem;
+  shopPriceText.textContent = shopItem ? `售價:${getShopPrice(shopItem)}` : "售價:--";
+  shopRefreshText.textContent = shopItem ? "商品將於下一次刷新時更換" : "等待下一次商品刷新";
+}
+
+function scheduleShopRefresh() {
+  clearTimeout(shopRefreshTimer);
+  shopRefreshTimer = setTimeout(() => {
+    refreshShopIfNeeded();
+    scheduleShopRefresh();
+  }, Math.max(0, shopRefreshAt - Date.now()));
+}
+
+function refreshShopIfNeeded() {
+  if (shopTimedModeVersion !== 1) {
+    shopItem = null;
+    shopRefreshAt = Date.now() + shopRefreshInterval;
+    shopTimedModeVersion = 1;
+  } else if (!shopRefreshAt) {
+    shopRefreshAt = Date.now() + shopRefreshInterval;
+  } else if (Date.now() >= shopRefreshAt) {
+    shopItem = createShopItem();
+    shopRefreshAt = Date.now() + shopRefreshInterval;
+  }
+
+  updateShopUi();
+  saveGame();
+}
+
+function buyShopItem() {
+  if (!shopItem) {
+    showShopResult("商品尚未刷新", "fail");
+    return;
+  }
+
+  const price = getShopPrice(shopItem);
+  if (money < price) {
+    showShopResult("金錢不足", "fail");
+    return;
+  }
+
+  money -= price;
+  addEquipmentToInventory(shopItem);
+  shopItem = null;
+  updateMoneyText();
+  updateShopUi();
+  showShopResult("購買成功", "success");
+  saveGame();
 }
 
 function renderForgeSlots() {
@@ -3435,6 +3546,15 @@ blacksmithButton.addEventListener("click", () => {
   }
 });
 
+shopButton.addEventListener("click", () => {
+  refreshShopIfNeeded();
+  showShopResult("");
+  showScreen("shop");
+});
+
+shopBuyBtn.addEventListener("click", buyShopItem);
+shopBackBtn.addEventListener("click", () => showScreen("lobby"));
+
 openComposeModeBtn.addEventListener("click", () => {
   renderBlacksmith();
   showBlacksmithMode("compose");
@@ -4002,6 +4122,8 @@ hero.addEventListener("transitionend", (event) => {
 });
 
 loadGame();
+refreshShopIfNeeded();
+scheduleShopRefresh();
 bgVolumeInput.value = Math.round(bgMusicVolume * 100);
 sfxVolumeInput.value = Math.round(sfxVolume * 100);
 updateMobileSoundToggleLabels();

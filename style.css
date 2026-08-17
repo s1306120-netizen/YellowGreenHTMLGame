@@ -1062,8 +1062,9 @@ h2 {
   max-width: 34%;
   opacity: 0;
   pointer-events: none;
-  transform: translate(-50%, -50%);
-  transition: left 500ms linear, top 500ms linear, opacity 120ms ease;
+  transform: translate(-50%, -50%) translate(0, 0);
+  transition: transform 500ms linear, opacity 120ms ease;
+  will-change: transform;
 }
 
 .gage-attack.is-active {
@@ -1071,8 +1072,9 @@ h2 {
 }
 
 .gage-attack.is-flying {
-  left: var(--gage-target-x);
-  top: var(--gage-target-y);
+  left: var(--gage-target-x, 50%);
+  top: var(--gage-target-y, -95px);
+  transform: translate(-50%, -50%) translate(var(--gage-shift-x, 0), var(--gage-shift-y, 0));
 }
 
 .boss-intro {

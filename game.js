@@ -2356,6 +2356,12 @@ function shootNormalGageAttack() {
   visual.style.setProperty("--gage-target-x", `${(targetColumn + 0.5) * (100 / 3)}%`);
   visual.style.setProperty("--gage-target-y", `${(targetRow + 0.5) * (100 / 3)}%`);
   void visual.offsetWidth;
+  const targetX = (targetColumn + 0.5) * (arena.clientWidth / 3);
+  const targetY = (targetRow + 0.5) * (arena.clientHeight / 3);
+  visual.style.setProperty("--gage-target-x", "50%");
+  visual.style.setProperty("--gage-target-y", "-95px");
+  visual.style.setProperty("--gage-shift-x", `${targetX - arena.clientWidth / 2}px`);
+  visual.style.setProperty("--gage-shift-y", `${targetY + 95}px`);
   playSound(aimSound);
 
   scheduleGageAction(() => {
@@ -2514,13 +2520,10 @@ function resetBoss() {
   const availableBosses = bossData.filter((boss) => boss.difficulty === difficultySelect.value);
   const savedBossName = retreatBossByDifficulty[difficultySelect.value];
   const tutorialBoss = bossData.find((boss) => boss.name === tutorialBossSequence[0]);
-  const normalGageBoss = bossData.find((boss) => boss.name === "普通格格");
   const firstBoss = tutorialStep === "combat"
     ? tutorialBoss
-    : difficultySelect.value === "普通"
-      ? normalGageBoss
-      : availableBosses.find((boss) => boss.name === savedBossName)
-        || availableBosses[Math.floor(Math.random() * availableBosses.length)];
+    : availableBosses.find((boss) => boss.name === savedBossName)
+      || availableBosses[Math.floor(Math.random() * availableBosses.length)];
 
   if (!firstBoss) {
     return false;
@@ -2930,9 +2933,7 @@ function goToNextBoss() {
   const availableBosses = bossData.filter((boss) => boss.difficulty === difficultySelect.value);
   const nextBoss = tutorialStep === "combat"
     ? bossData.find((boss) => boss.name === tutorialBossSequence[currentBossNumber])
-    : difficultySelect.value === "普通"
-      ? bossData.find((boss) => boss.name === "普通格格")
-      : availableBosses[Math.floor(Math.random() * availableBosses.length)];
+    : availableBosses[Math.floor(Math.random() * availableBosses.length)];
 
   currentBossNumber += 1;
   currentBossName = nextBoss.name;

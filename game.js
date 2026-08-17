@@ -3267,6 +3267,13 @@ function shootNormalBubbleAttack() {
   bubbleWeaponDodged = false;
   hitAnimation = requestAnimationFrame(watchBubbleWeaponHit);
   normalBubbleAttackTimer = setTimeout(() => {
+    const dashShouldDamage = !isWeaponAttack && bubbleWeaponWasTouching && !bubbleWeaponDodged;
+
+    if (dashShouldDamage && !tryDeathSave()) {
+      gameOver();
+      return;
+    }
+
     resetBubbleWeapon(false);
     enemy.src = "outputs/泡泡.png";
     if (!isGameOver && currentBossName === "普通泡泡") {

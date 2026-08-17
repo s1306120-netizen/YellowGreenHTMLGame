@@ -191,6 +191,7 @@ let bubbleSpinStartTime = 0;
 let gageTimers = [];
 let gageHazardCells = [];
 let gageHazardActive = false;
+let normalGageHazards = [];
 let isGameOver = false;
 let isKoPlaying = false;
 let isOpeningBagReward = false;
@@ -198,6 +199,10 @@ let canPlayerDamage = false;
 let isMoving = false;
 let bubbleWeaponWasTouching = false;
 let bubbleWeaponDodged = false;
+let normalBubbleAttackTimer = null;
+let normalBubbleDashStartTimer = null;
+let normalBubbleDashActive = false;
+let normalBubbleDashLanes = [];
 let lastMoveTime = -Infinity;
 let battleArmorRate = 0;
 let retreatBossByDifficulty = {};
@@ -222,11 +227,27 @@ const upgradeCosts = [
 const bossData = [
   { name: "小豬", difficulty: "簡單", hp: 100, defense: 0 },
   { name: "泡泡", difficulty: "簡單", hp: 100, defense: 5 },
+  { name: "普通泡泡", displayName: "泡泡", difficulty: "普通", hp: 250, defense: 20 },
   { name: "格格", difficulty: "簡單", hp: 150, defense: 0 },
+  { name: "普通格格", displayName: "格格", difficulty: "普通", hp: 400, defense: 10 },
   { name: "普通小豬", displayName: "小豬", difficulty: "普通", hp: 350, defense: 15 },
 ];
 const tutorialBossSequence = ["小豬", "泡泡", "格格"];
 const rewardBossData = { name: "寶箱", hp: 150, defense: 0 };
+
+function getBossImageName() {
+  if (currentBossName === "普通泡泡") return "泡泡";
+  if (currentBossName === "普通格格") return "格格";
+  return currentBossName;
+}
+
+function isBubbleBoss() {
+  return currentBossName === "泡泡" || currentBossName === "普通泡泡";
+}
+
+function isGageBoss() {
+  return currentBossName === "格格" || currentBossName === "普通格格";
+}
 
 const bagRarities = [
   { name: "普通", image: "outputs/普通袋子.png", scale: 1 },
@@ -307,6 +328,7 @@ const successSound = new Audio("outputs/成功聲.mp3");
 const aimSound = new Audio("outputs/瞄準聲.mp3");
 const pigAttackSound = new Audio("outputs/小豬攻擊聲.mp3");
 const bubbleAttackSound = new Audio("outputs/泡泡攻擊聲.mp3");
+const bubbleDashSound = new Audio("outputs/泡泡衝刺聲.mp3");
 const gageAttackSound1 = new Audio("outputs/格格攻擊聲1.mp3");
 const gageAttackSound2 = new Audio("outputs/格格攻擊聲2.mp3");
 const gageAttackSound3 = new Audio("outputs/格格攻擊聲3.mp3");
@@ -339,7 +361,7 @@ const soundLastPlayedAt = new WeakMap();
 const soundSequenceTokens = new WeakMap();
 lobbyMusic.loop = true;
 battleMusic.loop = true;
-[lobbyMusic, battleMusic, hammerSound, failSound, successSound, aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((audio) => {
+[lobbyMusic, battleMusic, hammerSound, failSound, successSound, aimSound, pigAttackSound, bubbleAttackSound, bubbleDashSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((audio) => {
   audio.preload = "auto";
   audio.load();
 });
@@ -362,7 +384,7 @@ function applyVolumeSettings() {
   hammerSound.volume = currentSfxVolume;
   failSound.volume = currentSfxVolume;
   successSound.volume = currentSfxVolume;
-  [aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => {
+  [aimSound, pigAttackSound, bubbleAttackSound, bubbleDashSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => {
     sound.volume = currentSfxVolume;
   });
 }
@@ -391,7 +413,7 @@ function setupWebAudioVolume() {
 
     audioContext.createMediaElementSource(lobbyMusic).connect(musicGain);
     audioContext.createMediaElementSource(battleMusic).connect(musicGain);
-    [hammerSound, failSound, aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => {
+    [hammerSound, failSound, aimSound, pigAttackSound, bubbleAttackSound, bubbleDashSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => {
       audioContext.createMediaElementSource(sound).connect(sfxGain);
     });
     audioContext.createMediaElementSource(successSound).connect(successGain);
@@ -502,7 +524,7 @@ function unlockAudioElements() {
   }
 
   areAudioElementsUnlocked = true;
-  [hammerSound, failSound, successSound, aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => {
+  [hammerSound, failSound, successSound, aimSound, pigAttackSound, bubbleAttackSound, bubbleDashSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => {
     const wasMuted = sound.muted;
 
     sound.muted = true;
@@ -2169,7 +2191,28 @@ function resetBubbleWeapon(clearDebug = true) {
   bubbleWeaponContactTimer = null;
   bubbleWeapon.style.visibility = "hidden";
   bubbleWeapon.style.animationPlayState = "paused";
+  clearTimeout(normalBubbleAttackTimer);
+  normalBubbleAttackTimer = null;
+  clearTimeout(normalBubbleDashStartTimer);
+  normalBubbleDashStartTimer = null;
   bubbleWeapon.classList.remove("is-warning", "is-attacking-left", "is-attacking-right", "is-spinning");
+  bubbleWeapon.src = "outputs/泡泡武器圖.png";
+  bubbleWeapon.style.removeProperty("left");
+  bubbleWeapon.style.removeProperty("top");
+  bubbleWeapon.style.removeProperty("width");
+  bubbleWeapon.style.removeProperty("height");
+  bubbleWeapon.style.removeProperty("transform");
+  bubbleWeapon.style.removeProperty("transition");
+  normalBubbleDashActive = false;
+  normalBubbleDashLanes = [];
+  enemy.classList.remove("is-normal-bubble-dash");
+  enemy.style.removeProperty("--normal-bubble-dash-left");
+  enemy.style.removeProperty("top");
+  enemy.style.removeProperty("left");
+  enemy.style.removeProperty("width");
+  enemy.style.removeProperty("height");
+  enemy.style.removeProperty("transform");
+  enemy.style.removeProperty("transition");
   bubbleWeaponWasTouching = false;
   bubbleWeaponDodged = false;
   if (clearDebug) {
@@ -2180,8 +2223,10 @@ function resetBubbleWeapon(clearDebug = true) {
 function clearGageAttack() {
   gageTimers.forEach(clearTimeout);
   gageTimers = [];
+  normalGageHazards.forEach((hazard) => hazard.visual?.remove());
   gageHazardCells = [];
   gageHazardActive = false;
+  normalGageHazards = [];
   gageAttack.style.transition = "none";
   gageAttack.className = "gage-attack";
   gageAttack.src = "outputs/格格攻擊圖1.png";
@@ -2233,6 +2278,17 @@ function checkGageHazard() {
 
   const playerCell = (2 - playerRow) * 3 + playerLane;
 
+  if (currentBossName === "普通格格") {
+    const isOnRedCell = normalGageHazards.some((hazard) =>
+      hazard.stage === "red" && hazard.cells.includes(playerCell)
+    );
+
+    if (isOnRedCell && !isMoving && !tryDeathSave()) {
+      gameOver();
+    }
+    return;
+  }
+
   if (!gageHazardActive || isMoving || !gageHazardCells.includes(playerCell)) {
     return;
   }
@@ -2242,11 +2298,90 @@ function checkGageHazard() {
   }
 }
 
+function updateNormalGageCells() {
+  const priority = { warning: 1, yellow: 2, red: 3 };
+
+  lanes.forEach((lane, index) => {
+    const stage = normalGageHazards.reduce((highest, hazard) => {
+      if (!hazard.cells.includes(index) || (priority[hazard.stage] || 0) <= (priority[highest] || 0)) {
+        return highest;
+      }
+      return hazard.stage;
+    }, "");
+
+    lane.classList.remove("gage-warning", "gage-yellow", "gage-red");
+    if (stage) {
+      lane.classList.add(`gage-${stage}`);
+    }
+  });
+}
+
+function shootNormalGageAttack() {
+  if (isGameOver || currentBossName !== "普通格格") {
+    return;
+  }
+
+  const playerCell = (2 - playerRow) * 3 + playerLane;
+  const targetCell = Math.random() < 0.3 ? playerCell : Math.floor(Math.random() * 9);
+  const targetRow = Math.floor(targetCell / 3);
+  const targetColumn = targetCell % 3;
+  const visual = document.createElement("img");
+  visual.className = "gage-attack is-active";
+  visual.src = "outputs/格格攻擊圖1.png";
+  visual.alt = "格格攻擊";
+  const hazard = { cells: getGageHazardCells(targetCell), stage: "", visual };
+
+  normalGageHazards.push(hazard);
+  arena.appendChild(visual);
+  visual.style.setProperty("--gage-target-x", `${(targetColumn + 0.5) * (100 / 3)}%`);
+  visual.style.setProperty("--gage-target-y", `${(targetRow + 0.5) * (100 / 3)}%`);
+  void visual.offsetWidth;
+  playSound(aimSound);
+
+  scheduleGageAction(() => {
+    visual.classList.add("is-flying");
+    playSound(gageAttackSound1);
+  }, 500);
+
+  scheduleGageAction(() => {
+    hazard.stage = "warning";
+    updateNormalGageCells();
+  }, 1000);
+  scheduleGageAction(() => {
+    hazard.stage = "yellow";
+    hazard.visual.src = "outputs/格格攻擊圖2.png";
+    updateNormalGageCells();
+    playSound(gageAttackSound2);
+  }, 1500);
+  scheduleGageAction(() => {
+    hazard.stage = "red";
+    hazard.visual.src = "outputs/格格攻擊圖3.png";
+    updateNormalGageCells();
+    playSound(gageAttackSound3);
+    checkGageHazard();
+  }, 2000);
+  scheduleGageAction(() => {
+    normalGageHazards = normalGageHazards.filter((entry) => entry !== hazard);
+    hazard.visual.remove();
+    updateNormalGageCells();
+  }, 2500);
+  scheduleGageAction(shootNormalGageAttack, 1000);
+}
+
 function shootGageAttack() {
+  if (currentBossName === "普通格格") {
+    shootNormalGageAttack();
+    return;
+  }
+
   clearGageAttack();
   enemy.src = "outputs/格格.png";
   gageAttack.classList.add("is-active");
   playSound(aimSound);
+  const isNormalGage = currentBossName === "普通格格";
+  const timings = isNormalGage
+    ? { target: 200, warning: 800, yellow: 1000, red: 1700, reset: 2700 }
+    : { target: 500, warning: 1000, yellow: 1500, red: 2000, reset: 2500 };
 
   scheduleGageAction(() => {
     const playerCell = (2 - playerRow) * 3 + playerLane;
@@ -2258,25 +2393,25 @@ function shootGageAttack() {
     gageAttack.style.setProperty("--gage-target-y", `${(targetRow + 0.5) * (100 / 3)}%`);
     gageAttack.classList.add("is-flying");
     playSound(gageAttackSound1);
-  }, 500);
+  }, timings.target);
 
-  scheduleGageAction(() => showGageCells("gage-warning"), 1000);
+  scheduleGageAction(() => showGageCells("gage-warning"), timings.warning);
   scheduleGageAction(() => {
     gageAttack.src = "outputs/格格攻擊圖2.png";
     showGageCells("gage-yellow");
     playSound(gageAttackSound2);
-  }, 1500);
+  }, timings.yellow);
   scheduleGageAction(() => {
     gageAttack.src = "outputs/格格攻擊圖3.png";
     showGageCells("gage-red");
     playSound(gageAttackSound3);
     gageHazardActive = true;
     checkGageHazard();
-  }, 2000);
+  }, timings.red);
   scheduleGageAction(() => {
     clearGageAttack();
     shootGageAttack();
-  }, 2500);
+  }, timings.reset);
 }
 
 function resetPlayerBullet() {
@@ -2359,10 +2494,13 @@ function resetBoss() {
   const availableBosses = bossData.filter((boss) => boss.difficulty === difficultySelect.value);
   const savedBossName = retreatBossByDifficulty[difficultySelect.value];
   const tutorialBoss = bossData.find((boss) => boss.name === tutorialBossSequence[0]);
+  const normalGageBoss = bossData.find((boss) => boss.name === "普通格格");
   const firstBoss = tutorialStep === "combat"
     ? tutorialBoss
-    : availableBosses.find((boss) => boss.name === savedBossName)
-      || availableBosses[Math.floor(Math.random() * availableBosses.length)];
+    : difficultySelect.value === "普通"
+      ? normalGageBoss
+      : availableBosses.find((boss) => boss.name === savedBossName)
+        || availableBosses[Math.floor(Math.random() * availableBosses.length)];
 
   if (!firstBoss) {
     return false;
@@ -2384,7 +2522,7 @@ function resetBoss() {
   bossHp = bossMaxHp;
   battleBags = [];
   enemy.classList.remove("is-defeated");
-  enemy.src = `outputs/${currentBossName}.png`;
+  enemy.src = `outputs/${getBossImageName()}.png`;
   updateBossHpText();
   return true;
 }
@@ -2772,7 +2910,9 @@ function goToNextBoss() {
   const availableBosses = bossData.filter((boss) => boss.difficulty === difficultySelect.value);
   const nextBoss = tutorialStep === "combat"
     ? bossData.find((boss) => boss.name === tutorialBossSequence[currentBossNumber])
-    : availableBosses[Math.floor(Math.random() * availableBosses.length)];
+    : difficultySelect.value === "普通"
+      ? bossData.find((boss) => boss.name === "普通格格")
+      : availableBosses[Math.floor(Math.random() * availableBosses.length)];
 
   currentBossNumber += 1;
   currentBossName = nextBoss.name;
@@ -2781,7 +2921,7 @@ function goToNextBoss() {
   bossMaxHp = Math.round(nextBoss.hp * battleMultiplier);
   bossHp = bossMaxHp;
   enemy.classList.remove("is-defeated");
-  enemy.src = `outputs/${currentBossName}.png`;
+  enemy.src = `outputs/${getBossImageName()}.png`;
   updateBossHpText();
 }
 
@@ -2880,8 +3020,46 @@ function checkBubbleWeaponHit() {
   }
 }
 
+function checkNormalBubbleDashHit() {
+  const attackerRect = enemy.getBoundingClientRect();
+  const heroRect = hero.getBoundingClientRect();
+  const overlapsAttacker = !(
+    attackerRect.right < heroRect.left ||
+    attackerRect.left > heroRect.right ||
+    attackerRect.bottom < heroRect.top ||
+    attackerRect.top > heroRect.bottom
+  );
+  const isHit = normalBubbleDashLanes.includes(playerLane) && overlapsAttacker;
+
+  if (isHit) {
+    if (!bubbleWeaponWasTouching) {
+      bubbleWeaponWasTouching = true;
+      bubbleWeaponDodged = false;
+    }
+
+    if (isMoving) {
+      bubbleWeaponDodged = true;
+    }
+    return;
+  }
+
+  if (!bubbleWeaponWasTouching) {
+    return;
+  }
+
+  bubbleWeaponWasTouching = false;
+  if (bubbleWeaponDodged) {
+    bubbleWeaponDodged = false;
+    return;
+  }
+
+  if (!tryDeathSave()) {
+    gameOver();
+  }
+}
+
 function watchBubbleWeaponHit() {
-  if (isGameOver || currentBossDefense !== 5) {
+  if (isGameOver || !isBubbleBoss()) {
     hitAnimation = null;
     return;
   }
@@ -2889,7 +3067,11 @@ function watchBubbleWeaponHit() {
   const now = performance.now();
   if (now - lastBubbleHitCheckAt >= 33) {
     lastBubbleHitCheckAt = now;
-    checkBubbleWeaponHit();
+    if (normalBubbleDashActive) {
+      checkNormalBubbleDashHit();
+    } else {
+      checkBubbleWeaponHit();
+    }
   }
 
   if (!isGameOver) {
@@ -2993,7 +3175,7 @@ function shootBullet() {
       bullet.style.transition = "top 620ms linear, opacity 120ms ease";
     }
     bullet.style.setProperty("--bullet-y", `${bulletEndY}px`);
-    enemy.src = `outputs/${currentBossName}.png`;
+    enemy.src = `outputs/${getBossImageName()}.png`;
     hitAnimation = requestAnimationFrame(watchBulletHit);
     const bulletDuration = currentBossName === "普通小豬"
       ? bulletLane === 1 ? 620 : 1100
@@ -3019,6 +3201,59 @@ function shootBubbleWeapon() {
   scheduleBubbleCycleSounds();
   hitAnimation = requestAnimationFrame(watchBubbleWeaponHit);
 }
+
+function shootNormalBubbleAttack() {
+  if (isGameOver || currentBossName !== "普通泡泡") {
+    return;
+  }
+
+  const attackType = Math.floor(Math.random() * 4);
+  const isWeaponAttack = attackType < 2;
+  const isLeftToRight = attackType === 0;
+  const isLeftDash = attackType === 3;
+
+  resetBubbleWeapon(false);
+  enemy.src = "outputs/泡泡.png";
+
+  if (isWeaponAttack) {
+    bubbleWeapon.style.visibility = "visible";
+    bubbleWeapon.style.animation = "none";
+    void bubbleWeapon.offsetWidth;
+    bubbleWeapon.style.animation = isLeftToRight
+      ? "bubble-spin 3800ms linear forwards"
+      : "bubble-spin-reverse 3800ms linear forwards";
+  } else {
+    normalBubbleDashActive = true;
+    normalBubbleDashLanes = isLeftDash ? [0, 1] : [1, 2];
+    enemy.src = "outputs/泡泡攻擊圖.png";
+    enemy.classList.add("is-normal-bubble-dash");
+    const dashOffsetX = isLeftDash ? "-20%" : "20%";
+    enemy.style.transform = `translate(${dashOffsetX}, -60px)`;
+    normalBubbleDashStartTimer = setTimeout(() => {
+      void enemy.offsetWidth;
+      const dashDistance = arena.getBoundingClientRect().bottom
+        - enemy.getBoundingClientRect().top
+        - enemy.offsetHeight / 2;
+      enemy.style.transform = `translate(${dashOffsetX}, ${dashDistance}px)`;
+    }, 500);
+  }
+
+  if (isWeaponAttack) {
+    playSoundThen(aimSound, bubbleAttackSound);
+  } else {
+    playSound(bubbleDashSound);
+  }
+  bubbleWeaponWasTouching = false;
+  bubbleWeaponDodged = false;
+  hitAnimation = requestAnimationFrame(watchBubbleWeaponHit);
+  normalBubbleAttackTimer = setTimeout(() => {
+    resetBubbleWeapon(false);
+    enemy.src = "outputs/泡泡.png";
+    if (!isGameOver && currentBossName === "普通泡泡") {
+      normalBubbleAttackTimer = setTimeout(shootNormalBubbleAttack, 850);
+    }
+  }, isWeaponAttack ? 3900 : 1320);
+}
 function shootPlayerBullet() {
   if (isGameOver || !canPlayerDamage) {
     return;
@@ -3040,12 +3275,14 @@ function shootPlayerBullet() {
 function startEnemyActions() {
   stopEnemyActions();
   resetBullet();
-  enemy.classList.toggle("is-gage", currentBossName === "格格");
-  enemy.src = `outputs/${currentBossName}.png`;
+  enemy.classList.toggle("is-gage", isGageBoss());
+  enemy.src = `outputs/${getBossImageName()}.png`;
   if (currentBossName === "寶箱") {
     // The reward chest never attacks.
-  } else if (currentBossName === "格格") {
+  } else if (isGageBoss()) {
     enemyAttackDelayTimer = setTimeout(shootGageAttack, 1000);
+  } else if (currentBossName === "普通泡泡") {
+    enemyAttackDelayTimer = setTimeout(shootNormalBubbleAttack, 1000);
   } else if (currentBossDefense === 5) {
     enemyAttackDelayTimer = setTimeout(shootBubbleWeapon, 1000);
   } else {
@@ -3091,7 +3328,7 @@ function stopEnemyActions() {
   hitAnimation = null;
   playerHitAnimation = null;
   canPlayerDamage = false;
-  enemy.src = `outputs/${currentBossName}.png`;
+  enemy.src = `outputs/${getBossImageName()}.png`;
 }
 
 startBtn.addEventListener("click", () => {
@@ -3415,7 +3652,7 @@ function setSfxSoundEnabled(enabled) {
   isSfxSoundEnabled = enabled;
 
   if (!enabled) {
-    [hammerSound, failSound, successSound, aimSound, pigAttackSound, bubbleAttackSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => sound.pause());
+    [hammerSound, failSound, successSound, aimSound, pigAttackSound, bubbleAttackSound, bubbleDashSound, gageAttackSound1, gageAttackSound2, gageAttackSound3].forEach((sound) => sound.pause());
   }
 
   updateMobileSoundToggleLabels();

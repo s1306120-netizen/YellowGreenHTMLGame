@@ -369,6 +369,59 @@ h1 {
   object-fit: contain;
 }
 
+.alien-flyer {
+  position: fixed;
+  top: 12px;
+  right: -140px;
+  z-index: 100;
+  width: 192px;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.alien-flyer.is-flying {
+  animation: alien-fly-across 3600ms linear forwards;
+}
+
+@keyframes alien-fly-across {
+  0% { right: -140px; opacity: 1; }
+  100% { right: calc(100% + 140px); opacity: 1; }
+}
+
+.alien-notice {
+  position: fixed;
+  top: 18%;
+  left: 50%;
+  z-index: 110;
+  display: none;
+  color: #76e89a;
+  font-size: 28px;
+  font-weight: 800;
+  text-shadow: 2px 2px 0 #173f25;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.alien-notice.is-active {
+  display: block;
+  animation: alien-notice-pop 1500ms ease-out forwards;
+}
+
+@keyframes alien-notice-pop {
+  0% { opacity: 0; transform: translate(-50%, 10px); }
+  20%, 75% { opacity: 1; transform: translate(-50%, 0); }
+  100% { opacity: 0; transform: translate(-50%, -8px); }
+}
+
+.alien-buff {
+  background: #9ee9ff !important;
+  color: #12394a !important;
+}
+
+.alien-reward {
+  color: #6bcde9;
+}
+
 .money-icon {
   width: 28px;
   height: 28px;

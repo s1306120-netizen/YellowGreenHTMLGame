@@ -3,6 +3,8 @@ const gameScreen = document.getElementById("game");
 const bagOpeningScreen = document.getElementById("bagOpening");
 const blacksmithScreen = document.getElementById("blacksmith");
 const shopScreen = document.getElementById("shop");
+const alienFlyer = document.getElementById("alienFlyer");
+const alienNotice = document.getElementById("alienNotice");
 const startBtn = document.getElementById("startBtn");
 const difficultyInfo = document.getElementById("difficultyInfo");
 const bagButton = document.getElementById("bagButton");
@@ -158,6 +160,7 @@ let isRewardStage = false;
 let hasBubbleWeaponAttacked = false;
 let money = 0;
 let battleReward = 100;
+let battleMoneyMultiplier = 1;
 let pendingMoney = 0;
 let battleBags = [];
 let inventory = [];
@@ -178,6 +181,9 @@ let shopRefreshAt = 0;
 let shopRefreshTimer = null;
 let shopTimedModeVersion = 0;
 let shopRefreshRemaining = 3 * 60 * 1000;
+let alienBuff = null;
+let alienTimer = null;
+let alienNoticeTimer = null;
 let forgePickerMode = "compose";
 let upgradeSlot = null;
 let upgradedPendingItem = null;
@@ -605,6 +611,7 @@ const enemyImages = [
   "outputs/空裝備格子圖.png",
   "outputs/商店鋪圖.png",
   "outputs/商店鋪內部圖.png",
+  "outputs/外星人.png",
   ...enemyImages,
   ...bagRarities.map((bag) => bag.image),
   ...chestRarities.map((chest) => chest.image),
@@ -640,10 +647,59 @@ function updateBattleArmor() {
   battleArmorText.textContent = `+${formatEffectAmount(battleArmorRate)}%護甲`;
 }
 
+function updateAlienBuffUi() {
+  const hasMoneyBuff = alienBuff === "money";
+  startBtn.classList.toggle("alien-buff", hasMoneyBuff);
+  rewardText.classList.toggle("alien-reward", hasMoneyBuff);
+  upgradeBtn.classList.toggle("alien-buff", alienBuff === "upgrade");
+  synthesizeBtn.classList.toggle("alien-buff", alienBuff === "forge");
+  openUpgradeModeBtn.classList.toggle("alien-buff", alienBuff === "upgrade");
+  openComposeModeBtn.classList.toggle("alien-buff", alienBuff === "forge");
+  shopBuyBtn.classList.toggle("alien-buff", alienBuff === "shop");
+  updateDifficultyInfo();
+  updateUpgradeUi();
+  renderForgeSlots();
+  updateShopUi();
+}
+
+function consumeAlienBuff(type) {
+  if (alienBuff !== type) {
+    return false;
+  }
+
+  alienBuff = null;
+  updateAlienBuffUi();
+  return true;
+}
+
+function spawnAlien() {
+  alienBuff = getRandomItem(["money", "upgrade", "forge", "shop"]);
+  updateAlienBuffUi();
+
+  alienNotice.classList.remove("is-active");
+  void alienNotice.offsetWidth;
+  alienNotice.classList.add("is-active");
+  clearTimeout(alienNoticeTimer);
+  alienNoticeTimer = setTimeout(() => alienNotice.classList.remove("is-active"), 1500);
+
+  if (currentScreenName === "game") {
+    return;
+  }
+
+  alienFlyer.classList.remove("is-flying");
+  void alienFlyer.offsetWidth;
+  alienFlyer.classList.add("is-flying");
+}
+
+function startAlienEvents() {
+  clearInterval(alienTimer);
+  alienTimer = setInterval(spawnAlien, 4 * 60 * 1000);
+}
+
 function updateDifficultyInfo() {
   const multiplier = Math.max(1, Math.round(Number(multiplierInput.value) * 2) / 2);
   const bossCount = Math.max(1, Number(bossCountInput.value));
-  const reward = rewardByDifficulty[difficultySelect.value] * bossCount * multiplier;
+  const reward = rewardByDifficulty[difficultySelect.value] * bossCount * multiplier * (alienBuff === "money" ? 3 : 1);
   const bagDropChance = Math.min(100, 20 * multiplier);
   const lootName = difficultySelect.value === "普通" ? "箱子" : "袋子";
   const rewardStageChance = getRewardStageChance(bossCount);
@@ -1234,13 +1290,29 @@ function getUpgradeCost(item) {
   return getUpgradeRule(level).costs[item.rarity] || 0;
 }
 
-function getUpgradeChance(item) {
+function getBaseUpgradeChance(item) {
   const level = Math.max(1, Number(item.level) || 1);
   return Math.min(100, getUpgradeRule(level).chance + (item.upgradeFailBonus || 0));
 }
 
-function getForgeChance() {
+function getUpgradeChance(item) {
+  return Math.min(100, getBaseUpgradeChance(item) + (alienBuff === "upgrade" ? 50 : 0));
+}
+
+function getUpgradeChanceText(item) {
+  const baseChance = getBaseUpgradeChance(item);
+  const alienBonus = Math.min(50, 100 - baseChance);
+  return alienBuff === "upgrade"
+    ? `成功機率:${baseChance}%+${alienBonus}%`
+    : `成功機率:${baseChance}%`;
+}
+
+function getBaseForgeChance() {
   return Math.min(100, 50 + forgeFailBonus);
+}
+
+function getForgeChance() {
+  return Math.min(100, getBaseForgeChance() + (alienBuff === "forge" ? 30 : 0));
 }
 
 function getSmeltRefund(item) {
@@ -1395,7 +1467,7 @@ function updateUpgradeUi() {
   }
 
   updateUpgradeDetailText(upgradeSlot.item);
-  upgradeBtn.innerHTML = `升級<br>花費:${getUpgradeCost(upgradeSlot.item)}<br>成功機率:${getUpgradeChance(upgradeSlot.item)}%`;
+  upgradeBtn.innerHTML = `升級<br>花費:${getUpgradeCost(upgradeSlot.item)}<br>${getUpgradeChanceText(upgradeSlot.item)}`;
 }
 
 function sortInventoryItems(items) {
@@ -1448,7 +1520,7 @@ const shopRefreshInterval = 3 * 60 * 1000;
 const shopPrices = { "普通": 100, "稀有": 300, "史詩": 1500, "傳奇": 3000 };
 
 function getShopPrice(item) {
-  return shopPrices[item?.rarity] || 0;
+  return alienBuff === "shop" ? 0 : shopPrices[item?.rarity] || 0;
 }
 
 function createShopItem() {
@@ -1484,7 +1556,8 @@ function showShopResult(text, type = "") {
 function updateShopUi() {
   setEquipmentSlot(shopItemSlot, shopItemImage, shopItem, "outputs/空裝備格子圖.png", "商店商品");
   shopBuyBtn.disabled = !shopItem;
-  shopPriceText.textContent = shopItem ? `售價:${getShopPrice(shopItem)}` : "售價:--";
+  shopPriceText.textContent = shopItem ? (alienBuff === "shop" ? "售價:免費" : `售價:${getShopPrice(shopItem)}`) : "售價:--";
+  shopBuyBtn.textContent = alienBuff === "shop" && shopItem ? "免費" : "購買";
   shopRefreshText.textContent = shopItem ? "商品將於下一次刷新時更換" : "等待下一次商品刷新";
 }
 
@@ -1528,6 +1601,7 @@ function buyShopItem() {
 
   money -= price;
   addEquipmentToInventory(shopItem);
+  consumeAlienBuff("shop");
   shopItem = null;
   updateMoneyText();
   updateShopUi();
@@ -1543,7 +1617,9 @@ function renderForgeSlots() {
     setEquipmentSlot(button, image, entry?.item, "outputs/空裝備格子圖.png", `材料${index + 1}`);
   });
 
-  synthesizeBtn.innerHTML = forgeSlots.every(Boolean) ? `合成<br>${getForgeChance()}%成功` : "合成";
+  synthesizeBtn.innerHTML = forgeSlots.every(Boolean) || alienBuff === "forge"
+    ? `合成<br>${alienBuff === "forge" ? `${getBaseForgeChance()}%+30%成功` : `${getForgeChance()}%成功`}`
+    : "合成";
 }
 
 function showForgeResultText(text, type) {
@@ -1862,6 +1938,8 @@ function upgradeSelectedItem() {
 
   const item = upgradeSlot.item;
   const itemBeforeUpgrade = { ...item };
+  const alienUpgradeChance = getUpgradeChance(item);
+  const hasAlienUpgradeBuff = alienBuff === "upgrade";
 
   if ((item.level || 1) >= 20) {
     showUpgradeResultText("已經滿等", "fail");
@@ -1876,6 +1954,9 @@ function upgradeSelectedItem() {
   }
 
   money -= cost;
+  if (hasAlienUpgradeBuff) {
+    consumeAlienBuff("upgrade");
+  }
   updateMoneyText();
   saveGame();
   isForging = true;
@@ -1892,7 +1973,7 @@ function upgradeSelectedItem() {
 
     const didUpgrade = tutorialStep === "upgrade"
       ? ++tutorialUpgradeAttempts >= 2
-      : Math.random() * 100 < getUpgradeChance(item);
+      : Math.random() * 100 < alienUpgradeChance;
 
     if (didUpgrade) {
       item.effect = getUpgradedEffectText(item);
@@ -1988,6 +2069,7 @@ function synthesizeForgeSlots() {
 
   const usedIndexes = forgeSlots.map((entry) => entry.index);
   const baseItem = firstSlot.item;
+  const alienForgeBonus = alienBuff === "forge";
   const isUpgrade = tutorialStep === "compose" || Math.random() * 100 < getForgeChance();
   const resultItem = isUpgrade
     ? createHigherRarityItem(baseItem)
@@ -1996,6 +2078,9 @@ function synthesizeForgeSlots() {
 
   isForging = true;
   money -= forgeCost;
+  if (alienForgeBonus) {
+    consumeAlienBuff("forge");
+  }
   updateMoneyText();
   saveGame();
   synthesizeBtn.disabled = true;
@@ -2293,7 +2378,7 @@ function getBattleReward() {
   const bossCount = Math.max(1, Number(bossCountInput.value));
   const multiplier = Math.max(1, Math.round(Number(multiplierInput.value) * 2) / 2);
 
-  return rewardByDifficulty[difficultySelect.value] * bossCount * multiplier;
+  return rewardByDifficulty[difficultySelect.value] * bossCount * multiplier * battleMoneyMultiplier;
 }
 
 function getRewardStageChance(bossCount) {
@@ -3479,6 +3564,8 @@ startBtn.addEventListener("click", () => {
     finishTutorialForNow();
   }
 
+  battleMoneyMultiplier = alienBuff === "money" ? 3 : 1;
+  consumeAlienBuff("money");
   resetGameOver();
   if (!resetBoss()) {
     alert("這個難度目前沒有BOSS資料");
@@ -4142,6 +4229,8 @@ resetPlayerBullet();
 updateBossHpText();
 updateDifficultyInfo();
 updateMoneyText();
+updateAlienBuffUi();
+startAlienEvents();
 if (tutorialStep === "intro") {
   showTutorialIntro();
 } else if (tutorialStep === "difficulty") {

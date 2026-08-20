@@ -19,13 +19,16 @@
     <img id="alienFlyer" class="alien-flyer" src="outputs/外星人.png" alt="外星人">
     <div id="alienNotice" class="alien-notice">外星人出現了!</div>
     <section id="lobby" class="screen screen-active">
-      <button id="bagButton" class="bag-button" type="button">
+      <button id="otherButton" class="other-button" type="button">
+        <img src="outputs/其他圖.png" alt="其他">
+      </button>
+      <button id="bagButton" class="bag-button lobby-shortcut" type="button">
         <img src="outputs/包包圖.png" alt="包包">
       </button>
-      <button id="blacksmithButton" class="blacksmith-button" type="button">
+      <button id="blacksmithButton" class="blacksmith-button lobby-shortcut" type="button">
         <img src="outputs/鐵匠鋪圖.png" alt="鐵匠鋪">
       </button>
-      <button id="shopButton" class="shop-button" type="button">
+      <button id="shopButton" class="shop-button lobby-shortcut" type="button">
         <img src="outputs/商店鋪圖.png" alt="商店鋪">
       </button>
       <div class="money-display">
@@ -67,7 +70,7 @@
         <span id="rewardText">會獲得的東西：金錢100</span>
         <span id="recommendationText" class="recommendation-text"></span>
       </button>
-      <div class="game-version">版本 1.35</div>
+      <div class="game-version">版本 1.36</div>
       <button id="startBtn" class="primary-button" type="button">開始</button>
       <div class="death-warning-text">死亡會掉落身上全部裝備</div>
 
@@ -135,6 +138,17 @@
           <button id="applySaveEditorBtn" class="small-button" type="button">套用</button>
           <button id="replayTutorialBtn" class="small-button" type="button">重看新手教學</button>
           <button id="closeSaveEditorBtn" class="small-button" type="button">關閉</button>
+        </div>
+      </div>
+      <div id="otherMenuModal" class="settings-modal">
+        <div class="settings-box other-menu-box">
+          <div class="other-menu-grid">
+            <button id="otherBagBtn" type="button"><img src="outputs/包包圖.png" alt="包包"></button>
+            <button id="otherBlacksmithBtn" type="button"><img src="outputs/鐵匠鋪圖.png" alt="鐵匠鋪"></button>
+            <button id="otherShopBtn" type="button"><img src="outputs/商店鋪圖.png" alt="商店"></button>
+            <button id="dailyTaskBtn" type="button"><img src="outputs/每日任務圖.png" alt="每日任務"></button>
+          </div>
+          <button id="closeOtherMenuBtn" class="small-button" type="button">關閉</button>
         </div>
       </div>
     </section>
@@ -240,6 +254,20 @@
         <button id="shopBuyBtn" class="primary-button" type="button" disabled>購買</button>
         <div id="shopResultText" class="blacksmith-result"></div>
         <button id="shopBackBtn" class="small-button" type="button">返回</button>
+      </div>
+    </section>
+
+    <section id="dailyTasks" class="screen">
+      <div class="daily-tasks-screen">
+        <div class="daily-tasks-title">每日任務</div>
+        <img id="dailyTaskStageImage" class="daily-task-stage-image" src="outputs/每日任務0.png" alt="每日任務進度">
+        <div class="daily-task-list">
+          <div class="daily-task-row"><span>每日登入</span><button id="dailyLoginBtn" class="small-button" type="button">完成</button></div>
+          <div class="daily-task-row"><span id="dailyBossTaskText">任意成功擊殺一個BOSS 0/1</span><button id="dailyBossBtn" class="small-button" type="button">前往</button></div>
+          <div class="daily-task-row"><span id="dailyDamageTaskText">造成500點傷害 0/500</span><button id="dailyDamageBtn" class="small-button" type="button">前往</button></div>
+          <div class="daily-task-row"><span id="dailyOpenTaskText">開啟5個箱子(袋子或箱子都是) 0/5</span><button id="dailyOpenBtn" class="small-button" type="button">前往</button></div>
+        </div>
+        <button id="dailyTasksBackBtn" class="small-button" type="button">返回</button>
       </div>
     </section>
 

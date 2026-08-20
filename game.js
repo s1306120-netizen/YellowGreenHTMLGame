@@ -3,6 +3,7 @@ const gameScreen = document.getElementById("game");
 const bagOpeningScreen = document.getElementById("bagOpening");
 const blacksmithScreen = document.getElementById("blacksmith");
 const shopScreen = document.getElementById("shop");
+const dailyTasksScreen = document.getElementById("dailyTasks");
 const alienFlyer = document.getElementById("alienFlyer");
 const alienNotice = document.getElementById("alienNotice");
 const startBtn = document.getElementById("startBtn");
@@ -10,6 +11,22 @@ const difficultyInfo = document.getElementById("difficultyInfo");
 const bagButton = document.getElementById("bagButton");
 const blacksmithButton = document.getElementById("blacksmithButton");
 const shopButton = document.getElementById("shopButton");
+const otherButton = document.getElementById("otherButton");
+const otherMenuModal = document.getElementById("otherMenuModal");
+const otherBagBtn = document.getElementById("otherBagBtn");
+const otherBlacksmithBtn = document.getElementById("otherBlacksmithBtn");
+const otherShopBtn = document.getElementById("otherShopBtn");
+const closeOtherMenuBtn = document.getElementById("closeOtherMenuBtn");
+const dailyTaskBtn = document.getElementById("dailyTaskBtn");
+const dailyTaskStageImage = document.getElementById("dailyTaskStageImage");
+const dailyLoginBtn = document.getElementById("dailyLoginBtn");
+const dailyBossBtn = document.getElementById("dailyBossBtn");
+const dailyDamageBtn = document.getElementById("dailyDamageBtn");
+const dailyOpenBtn = document.getElementById("dailyOpenBtn");
+const dailyBossTaskText = document.getElementById("dailyBossTaskText");
+const dailyDamageTaskText = document.getElementById("dailyDamageTaskText");
+const dailyOpenTaskText = document.getElementById("dailyOpenTaskText");
+const dailyTasksBackBtn = document.getElementById("dailyTasksBackBtn");
 const difficultyModal = document.getElementById("difficultyModal");
 const heroInfoModal = document.getElementById("heroInfoModal");
 const inventoryModal = document.getElementById("inventoryModal");
@@ -184,6 +201,7 @@ let shopRefreshRemaining = 3 * 60 * 1000;
 let alienBuff = null;
 let alienTimer = null;
 let alienNoticeTimer = null;
+let dailyTasks = null;
 let forgePickerMode = "compose";
 let upgradeSlot = null;
 let upgradedPendingItem = null;
@@ -579,7 +597,7 @@ function switchMusic(screen) {
     return;
   }
 
-  if (screen === "lobby" || screen === "blacksmith" || screen === "shop") {
+  if (screen === "lobby" || screen === "blacksmith" || screen === "shop" || screen === "dailyTasks") {
     playMusic(lobbyMusic);
   }
 }
@@ -625,6 +643,7 @@ function showScreen(screen) {
   bagOpeningScreen.classList.toggle("screen-active", screen === "bagOpening");
   blacksmithScreen.classList.toggle("screen-active", screen === "blacksmith");
   shopScreen.classList.toggle("screen-active", screen === "shop");
+  dailyTasksScreen.classList.toggle("screen-active", screen === "dailyTasks");
   switchMusic(screen);
 }
 
@@ -735,6 +754,129 @@ function updateHeroStatsList() {
     <div>特殊效果：${playerStats.specialEffect}</div>
     ${tutorialStep === "hero" ? "<hr><div>破防降低敵人防禦；攻擊力決定傷害；移動冷卻決定多久能再移動。</div><div>爆擊率與爆擊傷害提升爆擊；護甲與閃避率幫你抵擋攻擊；特殊效果提供額外能力。</div>" : ""}
   `;
+}
+
+function getTaipeiDateKey() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
+
+function ensureDailyTasks() {
+  const today = getTaipeiDateKey();
+
+  if (dailyTasks?.date === today) {
+    return false;
+  }
+
+  dailyTasks = {
+    date: today,
+    stage: 0,
+    claimed: { login: false, boss: false, damage: false, open: false },
+    bossKills: 0,
+    damage: 0,
+    opened: 0,
+  };
+  return true;
+}
+
+function updateDailyTaskUi() {
+  const didReset = ensureDailyTasks();
+  const state = dailyTasks;
+  dailyTaskStageImage.src = `outputs/每日任務${state.stage}.png`;
+  dailyBossTaskText.textContent = `任意成功擊殺一個BOSS ${Math.min(1, state.bossKills)}/1`;
+  dailyDamageTaskText.textContent = `造成500點傷害 ${Math.min(500, state.damage)}/500`;
+  dailyOpenTaskText.textContent = `開啟5個箱子(袋子或箱子都是) ${Math.min(5, state.opened)}/5`;
+
+  const tasks = [
+    [dailyLoginBtn, "login", true],
+    [dailyBossBtn, "boss", state.bossKills >= 1],
+    [dailyDamageBtn, "damage", state.damage >= 500],
+    [dailyOpenBtn, "open", state.opened >= 5],
+  ];
+
+  tasks.forEach(([button, key, complete]) => {
+    button.disabled = state.claimed[key];
+    button.textContent = state.claimed[key] ? "已完成" : complete ? "完成" : "前往";
+  });
+
+  if (didReset) {
+    saveGame();
+  }
+}
+
+function showDailyRewardImage(image, className) {
+  const rewardImage = document.createElement("img");
+  rewardImage.className = `daily-reward-image ${className}`;
+  rewardImage.src = image;
+  rewardImage.alt = "每日任務獎勵";
+  document.body.appendChild(rewardImage);
+  setTimeout(() => rewardImage.remove(), 1100);
+}
+
+function openDailyLoot(kind) {
+  battleBags = [{ kind, rarityIndex: 0, upgraded: false }];
+  openingBagIndex = 0;
+  openingBagClicks = 0;
+  isOpeningBagReward = false;
+  updateOpenBagScreen();
+  showScreen("bagOpening");
+}
+
+function giveDailyReward(stage) {
+  setTimeout(() => {
+    if (stage === 1) {
+      money += 1000;
+      updateMoneyText();
+      showDailyRewardImage("outputs/錢.png", "daily-reward-money");
+    } else if (stage === 2) {
+      openDailyLoot("bag");
+    } else if (stage === 3) {
+      const item = findEquipmentByName("標準木劍");
+      addEquipmentToInventory(item);
+      showDailyRewardImage(item.image, "daily-reward-item");
+    } else if (stage === 4) {
+      openDailyLoot("chest");
+    }
+    saveGame();
+  }, 500);
+}
+
+function claimDailyTask(key, complete) {
+  ensureDailyTasks();
+  if (!complete) {
+    showScreen("lobby");
+    return;
+  }
+
+  if (dailyTasks.claimed[key]) {
+    return;
+  }
+
+  dailyTasks.claimed[key] = true;
+  dailyTasks.stage += 1;
+  updateDailyTaskUi();
+  saveGame();
+  giveDailyReward(dailyTasks.stage);
+}
+
+function recordDailyBossKill() {
+  ensureDailyTasks();
+  dailyTasks.bossKills = Math.min(1, dailyTasks.bossKills + 1);
+  updateDailyTaskUi();
+  saveGame();
+}
+
+function recordDailyDamage(amount) {
+  ensureDailyTasks();
+  dailyTasks.damage = Math.min(500, dailyTasks.damage + amount);
+  updateDailyTaskUi();
+  saveGame();
+}
+
+function recordDailyOpen() {
+  ensureDailyTasks();
+  dailyTasks.opened = Math.min(5, dailyTasks.opened + 1);
+  updateDailyTaskUi();
+  saveGame();
 }
 
 function getRandomItem(items) {
@@ -863,6 +1005,7 @@ function saveGame() {
     shopItem,
     shopRefreshRemaining: Math.max(0, shopRefreshAt - Date.now()),
     shopTimedModeVersion,
+    dailyTasks,
     inventory,
     equippedItems: Object.fromEntries(
       Object.entries(equippedItems).map(([type, item]) => [type, item])
@@ -907,6 +1050,7 @@ function loadGame() {
     shopRefreshAt = 0;
     shopRefreshRemaining = Math.max(0, Number(saveData.shopRefreshRemaining) || 3 * 60 * 1000);
     shopTimedModeVersion = Number(saveData.shopTimedModeVersion) || 0;
+    dailyTasks = saveData.dailyTasks || null;
     bgVolumeInput.value = Math.round(bgMusicVolume * 100);
     sfxVolumeInput.value = Math.round(sfxVolume * 100);
     applyVolumeSettings();
@@ -2983,6 +3127,7 @@ function clickOpenBag() {
 
   if (openingBagClicks >= 4) {
     bag.upgraded = true;
+    recordDailyOpen();
     const reward = collectBagReward(bag);
     setTimeout(() => playSound(successSound), 420);
 
@@ -3311,11 +3456,13 @@ function damageBoss() {
   const damage = damageResult.amount;
 
   bossHp = Math.max(0, bossHp - damage);
+  recordDailyDamage(damage);
   showDamageText(damageResult);
   updateBossHpText();
   resetPlayerBullet();
 
   if (bossHp <= 0) {
+    recordDailyBossKill();
     if (currentBossName === "寶箱") {
       battleBags.push({
         kind: difficultySelect.value === "普通" ? "chest" : "bag",
@@ -3618,6 +3765,31 @@ bagButton.addEventListener("click", () => {
     clearTutorialTarget();
   }
 });
+
+otherButton.addEventListener("click", () => otherMenuModal.classList.add("is-active"));
+closeOtherMenuBtn.addEventListener("click", () => otherMenuModal.classList.remove("is-active"));
+otherBagBtn.addEventListener("click", () => {
+  otherMenuModal.classList.remove("is-active");
+  bagButton.click();
+});
+otherBlacksmithBtn.addEventListener("click", () => {
+  otherMenuModal.classList.remove("is-active");
+  blacksmithButton.click();
+});
+otherShopBtn.addEventListener("click", () => {
+  otherMenuModal.classList.remove("is-active");
+  shopButton.click();
+});
+dailyTaskBtn.addEventListener("click", () => {
+  otherMenuModal.classList.remove("is-active");
+  updateDailyTaskUi();
+  showScreen("dailyTasks");
+});
+dailyLoginBtn.addEventListener("click", () => claimDailyTask("login", true));
+dailyBossBtn.addEventListener("click", () => claimDailyTask("boss", dailyTasks?.bossKills >= 1));
+dailyDamageBtn.addEventListener("click", () => claimDailyTask("damage", dailyTasks?.damage >= 500));
+dailyOpenBtn.addEventListener("click", () => claimDailyTask("open", dailyTasks?.opened >= 5));
+dailyTasksBackBtn.addEventListener("click", () => showScreen("lobby"));
 
 blacksmithButton.addEventListener("click", () => {
   showForgeResultText("", "");
@@ -4229,6 +4401,7 @@ resetPlayerBullet();
 updateBossHpText();
 updateDifficultyInfo();
 updateMoneyText();
+updateDailyTaskUi();
 updateAlienBuffUi();
 startAlienEvents();
 if (tutorialStep === "intro") {

@@ -487,7 +487,7 @@ function playMusic(music) {
   music.play()
     .then(() => {
       const shouldKeepPlaying = music === lobbyMusic
-        ? currentScreenName === "lobby" || currentScreenName === "blacksmith"
+        ? ["lobby", "blacksmith", "shop", "dailyTasks"].includes(currentScreenName)
         : currentScreenName === "game";
 
       if (!shouldKeepPlaying) {
@@ -692,6 +692,10 @@ function consumeAlienBuff(type) {
 }
 
 function spawnAlien() {
+  if (tutorialStep !== "completed") {
+    return;
+  }
+
   alienBuff = getRandomItem(["money", "upgrade", "forge", "shop"]);
   updateAlienBuffUi();
 
@@ -712,6 +716,9 @@ function spawnAlien() {
 
 function startAlienEvents() {
   clearInterval(alienTimer);
+  if (tutorialStep !== "completed") {
+    return;
+  }
   alienTimer = setInterval(spawnAlien, 4 * 60 * 1000);
 }
 
@@ -859,6 +866,9 @@ function claimDailyTask(key, complete) {
 }
 
 function recordDailyBossKill() {
+  if (tutorialStep !== "completed") {
+    return;
+  }
   ensureDailyTasks();
   dailyTasks.bossKills = Math.min(1, dailyTasks.bossKills + 1);
   updateDailyTaskUi();
@@ -866,6 +876,9 @@ function recordDailyBossKill() {
 }
 
 function recordDailyDamage(amount) {
+  if (tutorialStep !== "completed") {
+    return;
+  }
   ensureDailyTasks();
   dailyTasks.damage = Math.min(500, dailyTasks.damage + amount);
   updateDailyTaskUi();
@@ -873,6 +886,9 @@ function recordDailyDamage(amount) {
 }
 
 function recordDailyOpen() {
+  if (tutorialStep !== "completed") {
+    return;
+  }
   ensureDailyTasks();
   dailyTasks.opened = Math.min(5, dailyTasks.opened + 1);
   updateDailyTaskUi();
@@ -1734,13 +1750,13 @@ function refreshShopIfNeeded() {
 function buyShopItem() {
   if (!shopItem) {
     showShopResult("商品尚未刷新", "fail");
-    return;
+    return false;
   }
 
   const price = getShopPrice(shopItem);
   if (money < price) {
     showShopResult("金錢不足", "fail");
-    return;
+    return false;
   }
 
   money -= price;
@@ -1751,6 +1767,7 @@ function buyShopItem() {
   updateShopUi();
   showShopResult("購買成功", "success");
   saveGame();
+  return true;
 }
 
 function renderForgeSlots() {
@@ -1779,7 +1796,9 @@ function showForgeResultText(text, type) {
 
 function getForgePickerItems(slotIndex) {
   if (forgePickerMode === "upgrade" || forgePickerMode === "smelt") {
-    return inventory.map((item, index) => ({ item, index }));
+    return inventory
+      .map((item, index) => ({ item, index }))
+      .filter((entry) => tutorialStep !== "smeltIntro" || (entry.item.name === "皮革鞋子" && entry.item.level === 3));
   }
 
   const usedIndexes = forgeSlots
@@ -1851,6 +1870,11 @@ function renderForgePicker(slotIndex) {
         showSmeltResultText("", "");
         updateSmeltUi();
         forgePickerModal.classList.remove("is-active");
+        if (tutorialStep === "smeltIntro") {
+          tutorialOverlay.classList.add("is-open");
+          tutorialText.textContent = "鞋子放好了，現在按熔煉。";
+          setTutorialTarget(smeltBtn);
+        }
         return;
       }
 
@@ -1913,6 +1937,10 @@ function openUpgradePicker() {
 }
 
 function openSmeltPicker() {
+  if (tutorialStep === "smeltIntro") {
+    tutorialOverlay.classList.remove("is-open");
+    clearTutorialTarget();
+  }
   forgePickerMode = "smelt";
   renderForgePicker(0);
   forgePickerModal.classList.add("is-active");
@@ -1973,6 +2001,15 @@ function collectSmeltResult() {
   showSmeltResultText("已放回包包", "success");
   updateSmeltUi();
   saveGame();
+
+  if (tutorialStep === "smeltIntro") {
+    tutorialStep = "final";
+    tutorialDialogueMode = "final";
+    saveGame();
+    showScreen("lobby");
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.innerHTML = "開始你的閃避之旅！<br><span class=\"tutorial-danger\">小心喔，只要死亡身上的所有裝備都會掉落。</span>";
+  }
 }
 
 function smeltSelectedItem() {
@@ -2020,6 +2057,11 @@ function smeltSelectedItem() {
     setEquipmentSlot(smeltResultSlot, smeltResultImage, item, "outputs/空裝備格子圖.png", "熔煉結果");
     showSmeltResultText(`熔煉完成，獲得 ${refund} 塊`, "success");
     updateSmeltUi();
+    if (tutorialStep === "smeltIntro") {
+      tutorialOverlay.classList.add("is-open");
+      tutorialText.textContent = "熔煉完成，點右邊結果格收下鞋子。";
+      setTutorialTarget(smeltResultSlot);
+    }
     saveGame();
     isForging = false;
     smeltBtn.disabled = false;
@@ -2041,8 +2083,8 @@ function collectUpgradeResult() {
     saveGame();
     showScreen("lobby");
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "先點包包，穿上剛剛合成的石劍。";
-    setTutorialTarget(bagButton);
+    tutorialText.textContent = "先點其他，再點包包，穿上剛剛合成的石劍。";
+    setTutorialTarget(otherButton);
   }
 }
 
@@ -2381,6 +2423,16 @@ function collectBagReward(bag) {
       image: item.image,
       alt: item.name,
       scale: 1.35,
+    };
+  }
+
+  if (tutorialStep === "bags" && bag.tutorialRewardMoney) {
+    pendingMoney += bag.tutorialRewardMoney;
+    return {
+      text: `獲得金錢 ${bag.tutorialRewardMoney}`,
+      image: "outputs/錢.png",
+      alt: "錢",
+      scale: 1.2,
     };
   }
 
@@ -3091,8 +3143,8 @@ function finishBagOpening() {
   collectPendingMoney();
   if (tutorialStep === "compose") {
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "你拿到了三把普通武器。點鐵匠鋪，來試著合成吧！";
-    setTutorialTarget(blacksmithButton);
+    tutorialText.textContent = "你拿到了三把普通武器。先點其他，再點鐵匠鋪，來試著合成吧！";
+    setTutorialTarget(otherButton);
   }
 }
 
@@ -3170,6 +3222,16 @@ function finishBossDefeat() {
   if (isRewardStage) {
     isRewardStage = false;
     if (currentBossNumber >= totalBossCount) {
+      if (tutorialStep === "combat") {
+        tutorialStep = "bags";
+        battleBags = [
+          { rarityIndex: 0, upgraded: false, tutorialRewardName: "破舊木劍" },
+          { rarityIndex: 0, upgraded: false, tutorialRewardName: "破舊木劍" },
+          { rarityIndex: 1, upgraded: false, tutorialRewardName: "標準木劍" },
+          { rarityIndex: 0, upgraded: false, tutorialRewardMoney: 1000 },
+        ];
+        saveGame();
+      }
       winBattle();
     } else {
       goToNextBoss();
@@ -3181,7 +3243,7 @@ function finishBossDefeat() {
   if (!rewardStageRolled && currentBossNumber >= totalBossCount) {
     rewardStageRolled = true;
 
-    if (Math.random() * 100 < getRewardStageChance(totalBossCount)) {
+    if (tutorialStep === "combat" || Math.random() * 100 < getRewardStageChance(totalBossCount)) {
       isRewardStage = true;
       currentBossName = rewardBossData.name;
       currentBossDefense = rewardBossData.defense;
@@ -3235,6 +3297,13 @@ function startBossIntro() {
         enemy.classList.remove("is-intro-hidden");
         bossIntroTimer = null;
         if (tutorialStep === "combat") {
+          if (currentBossName === "寶箱") {
+            tutorialDialogueMode = "chest";
+            tutorialNextBtn.hidden = true;
+            tutorialText.textContent = "好耶！這次很幸運地遇到寶箱怪，他一定會掉落獎勵品，而且還不會攻擊。";
+            tutorialOverlay.classList.add("is-open");
+            return;
+          }
           showBattleTutorialMessage();
         } else {
           startEnemyActions();
@@ -3749,11 +3818,11 @@ heroInfoBtn.addEventListener("click", () => {
 closeHeroInfoBtn.addEventListener("click", () => {
   heroInfoModal.classList.remove("is-active");
   if (tutorialStep === "hero") {
-    tutorialStep = "completed";
+    tutorialStep = "dailyIntro";
     saveGame();
-    tutorialDialogueMode = "final";
     tutorialOverlay.classList.add("is-open");
-    tutorialText.innerHTML = "開始你的閃避之旅！<br><span class=\"tutorial-danger\">小心喔，只要死亡身上的所有裝備都會掉落。</span>";
+    tutorialText.textContent = "接著看看每日任務。先點其他，再點每日任務。";
+    setTutorialTarget(otherButton);
   }
 });
 
@@ -3766,26 +3835,62 @@ bagButton.addEventListener("click", () => {
   }
 });
 
-otherButton.addEventListener("click", () => otherMenuModal.classList.add("is-active"));
-closeOtherMenuBtn.addEventListener("click", () => otherMenuModal.classList.remove("is-active"));
+otherButton.addEventListener("click", () => {
+  otherMenuModal.classList.add("is-active");
+  if (tutorialStep === "compose" || tutorialStep === "upgrade" || tutorialStep === "smeltIntro") {
+    otherMenuModal.classList.add("tutorial-modal");
+    tutorialText.textContent = tutorialStep === "upgrade" ? "現在點鐵匠鋪，進入升級教學。" : tutorialStep === "smeltIntro" ? "現在點鐵匠鋪，進入熔煉教學。" : "現在點鐵匠鋪。";
+    setTutorialTarget(otherBlacksmithBtn);
+  } else if (tutorialStep === "equip" || tutorialStep === "dailyIntro" || tutorialStep === "shopIntro") {
+    otherMenuModal.classList.add("tutorial-modal");
+    if (tutorialStep === "dailyIntro") {
+      tutorialText.textContent = "現在點每日任務。";
+      setTutorialTarget(dailyTaskBtn);
+    } else if (tutorialStep === "shopIntro") {
+      tutorialText.textContent = "現在點商店。";
+      setTutorialTarget(otherShopBtn);
+    } else {
+      tutorialText.textContent = "現在點包包。";
+      setTutorialTarget(otherBagBtn);
+    }
+  }
+});
+closeOtherMenuBtn.addEventListener("click", () => otherMenuModal.classList.remove("is-active", "tutorial-modal"));
 otherBagBtn.addEventListener("click", () => {
-  otherMenuModal.classList.remove("is-active");
+  otherMenuModal.classList.remove("is-active", "tutorial-modal");
   bagButton.click();
 });
 otherBlacksmithBtn.addEventListener("click", () => {
-  otherMenuModal.classList.remove("is-active");
+  otherMenuModal.classList.remove("is-active", "tutorial-modal");
   blacksmithButton.click();
 });
 otherShopBtn.addEventListener("click", () => {
-  otherMenuModal.classList.remove("is-active");
+  otherMenuModal.classList.remove("is-active", "tutorial-modal");
   shopButton.click();
 });
 dailyTaskBtn.addEventListener("click", () => {
-  otherMenuModal.classList.remove("is-active");
+  otherMenuModal.classList.remove("is-active", "tutorial-modal");
   updateDailyTaskUi();
   showScreen("dailyTasks");
+  if (tutorialStep === "dailyIntro") {
+    tutorialStep = "dailyClaim";
+    saveGame();
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "每日登入每天都能領一次獎勵，現在點完成領取。";
+    setTutorialTarget(dailyLoginBtn);
+  }
 });
-dailyLoginBtn.addEventListener("click", () => claimDailyTask("login", true));
+dailyLoginBtn.addEventListener("click", () => {
+  claimDailyTask("login", true);
+  if (tutorialStep === "dailyClaim") {
+    tutorialStep = "shopIntro";
+    saveGame();
+    showScreen("lobby");
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "再來看看商店。先點其他，再點商店。";
+    setTutorialTarget(otherButton);
+  }
+});
 dailyBossBtn.addEventListener("click", () => claimDailyTask("boss", dailyTasks?.bossKills >= 1));
 dailyDamageBtn.addEventListener("click", () => claimDailyTask("damage", dailyTasks?.damage >= 500));
 dailyOpenBtn.addEventListener("click", () => claimDailyTask("open", dailyTasks?.opened >= 5));
@@ -3808,15 +3913,43 @@ blacksmithButton.addEventListener("click", () => {
     tutorialText.textContent = "現在點升級，讓剛合成的武器變得更強。";
     setTutorialTarget(openUpgradeModeBtn);
   }
+  if (tutorialStep === "smeltIntro") {
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "不需要的有等級裝備，可以在熔煉爐還原成 1 級並取回一些金錢。現在點熔煉。";
+    setTutorialTarget(openSmeltModeBtn);
+  }
 });
 
 shopButton.addEventListener("click", () => {
   refreshShopIfNeeded();
+  if (tutorialStep === "shopIntro") {
+    shopItem = { ...findEquipmentByName("皮革鞋子"), level: 1, upgradeFailBonus: 0 };
+    while (shopItem.level < 3) {
+      shopItem.effect = getUpgradedEffectText(shopItem);
+      shopItem.level += 1;
+    }
+    updateShopUi();
+  }
   showShopResult("");
   showScreen("shop");
+  if (tutorialStep === "shopIntro") {
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "怪物商店會固定刷新一件便宜二手商品。這次有一雙 3 級皮革鞋子，現在買下它。";
+    setTutorialTarget(shopBuyBtn);
+  }
 });
 
-shopBuyBtn.addEventListener("click", buyShopItem);
+shopBuyBtn.addEventListener("click", () => {
+  const bought = buyShopItem();
+  if (bought && tutorialStep === "shopIntro") {
+    tutorialStep = "smeltIntro";
+    saveGame();
+    showScreen("lobby");
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "現在介紹熔煉。先點其他，再點鐵匠鋪。";
+    setTutorialTarget(otherButton);
+  }
+});
 shopBackBtn.addEventListener("click", () => showScreen("lobby"));
 
 window.addEventListener("pagehide", saveGame);
@@ -3844,6 +3977,11 @@ openUpgradeModeBtn.addEventListener("click", () => {
 openSmeltModeBtn.addEventListener("click", () => {
   resetSmeltSlot();
   showBlacksmithMode("smelt");
+  if (tutorialStep === "smeltIntro") {
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "先放入剛買的 3 級皮革鞋子。";
+    setTutorialTarget(smeltInputSlot);
+  }
 });
 
 blacksmithSelectBackBtn.addEventListener("click", () => showScreen("lobby"));
@@ -3853,8 +3991,8 @@ blacksmithBackBtn.addEventListener("click", () => {
   showScreen("lobby");
   if (tutorialStep === "upgrade") {
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "現在點鐵匠鋪，進入升級教學。";
-    setTutorialTarget(blacksmithButton);
+    tutorialText.textContent = "先點其他，再點鐵匠鋪，進入升級教學。";
+    setTutorialTarget(otherButton);
   }
 });
 
@@ -4055,7 +4193,7 @@ function setBackgroundSoundEnabled(enabled) {
     battleMusic.pause();
   } else if (currentScreenName === "game") {
     playMusic(battleMusic);
-  } else if (currentScreenName === "lobby" || currentScreenName === "blacksmith") {
+  } else if (["lobby", "blacksmith", "shop", "dailyTasks"].includes(currentScreenName)) {
     playMusic(lobbyMusic);
   }
 
@@ -4118,7 +4256,7 @@ function showTutorialIntro() {
 function showDifficultyTutorial() {
   tutorialOverlay.classList.add("is-open");
   tutorialNextBtn.hidden = true;
-  setTutorialMessage("先點這個設定框，把這次挑戰調整成 3 隻 BOSS。", "我知道了");
+  setTutorialMessage("先點這個設定框，把這次挑戰調整成 3 隻 BOSS。這樣可提升遇到寶箱怪的機會。", "我知道了");
   setTutorialTarget(difficultyInfo);
 }
 
@@ -4163,6 +4301,9 @@ function finishTutorialForNow() {
 tutorialNextBtn.addEventListener("click", () => {
   if (tutorialDialogueMode === "final") {
     tutorialDialogueMode = null;
+    tutorialStep = "completed";
+    saveGame();
+    startAlienEvents();
     tutorialOverlay.classList.remove("is-open");
     return;
   }
@@ -4206,6 +4347,13 @@ tutorialNextBtn.addEventListener("click", () => {
     return;
   }
 
+  if (tutorialDialogueMode === "chest") {
+    tutorialDialogueMode = null;
+    tutorialOverlay.classList.remove("is-open");
+    startEnemyActions();
+    return;
+  }
+
   tutorialDialogueIndex += 1;
 
   if (tutorialDialogueIndex < tutorialIntroLines.length) {
@@ -4223,6 +4371,10 @@ tutorialNextBtn.addEventListener("click", () => {
 
 tutorialOverlay.addEventListener("click", (event) => {
   if (event.target !== tutorialOverlay) {
+    return;
+  }
+
+  if (tutorialDialogueMode === "multiplier") {
     return;
   }
 
@@ -4256,8 +4408,21 @@ bossCountInput.addEventListener("input", () => {
     return;
   }
 
-  setTutorialMessage("很好！現在按完成。", "設定中");
+  tutorialDialogueMode = "multiplier";
+  setTutorialMessage("很好！3 隻 BOSS 有 40% 機率遇到寶箱怪。調整倍率可以讓 BOSS 更容易掉落獎勵品，但也會讓 BOSS 變得更強，所以我們這次先不調整。", "設定中");
   tutorialNextBtn.hidden = true;
+  setTutorialTarget(multiplierInput);
+});
+
+multiplierInput.addEventListener("pointerdown", (event) => {
+  if (tutorialStep !== "difficulty" || tutorialDialogueMode !== "multiplier") {
+    return;
+  }
+
+  event.preventDefault();
+  multiplierInput.value = "1.0";
+  tutorialDialogueMode = null;
+  setTutorialMessage("很好！現在按完成。", "設定中");
   setTutorialTarget(closeDifficultyBtn);
 });
 

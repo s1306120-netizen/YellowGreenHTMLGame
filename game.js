@@ -276,7 +276,7 @@ const tutorialBossSequence = ["小豬", "泡泡", "格格"];
 const rewardBossData = { name: "寶箱", hp: 50, defense: 0 };
 
 function getBossImageName() {
-  if (currentBossName === "普通泡泡") return "泡泡";
+  if (currentBossName === "普通泡泡") return "普通泡泡";
   if (currentBossName === "普通格格") return "格格";
   return currentBossName;
 }
@@ -301,6 +301,13 @@ const chestRarities = [
   { name: "稀有", image: "outputs/稀有箱子.png", scale: 1.25 },
   { name: "史詩", image: "outputs/史詩箱子.png", scale: 1.55 },
   { name: "傳奇", image: "outputs/傳奇箱子.png", scale: 1.95 },
+];
+
+const treasureChestRarities = [
+  { name: "普通", image: "outputs/普通寶箱.png", scale: 1 },
+  { name: "稀有", image: "outputs/稀有寶箱.png", scale: 1.25 },
+  { name: "史詩", image: "outputs/史詩寶箱.png", scale: 1.55 },
+  { name: "傳奇", image: "outputs/傳奇寶箱.png", scale: 1.95 },
 ];
 
 const equipmentData = [
@@ -626,6 +633,12 @@ const enemyImages = [
   "outputs/小豬(準備攻擊右).png?v=2",
 ];
 
+const normalPigEnemyImages = [
+  "outputs/普通小豬(準備攻擊左).png",
+  "outputs/小豬(準備攻擊中).png",
+  "outputs/普通小豬(準備攻擊右).png",
+];
+
 [
   "outputs/K.png",
   "outputs/O.png",
@@ -637,6 +650,7 @@ const enemyImages = [
   ...enemyImages,
   ...bagRarities.map((bag) => bag.image),
   ...chestRarities.map((chest) => chest.image),
+  ...treasureChestRarities.map((chest) => chest.image),
   ...equipmentData.map((item) => item.image),
 ].forEach(preloadImage);
 
@@ -749,7 +763,7 @@ function updateDifficultyInfo() {
   const bossCount = Math.max(1, Number(bossCountInput.value));
   const reward = rewardByDifficulty[difficultySelect.value] * bossCount * multiplier * (alienBuff === "money" ? 3 : 1);
   const bagDropChance = Math.min(100, 20 * multiplier);
-  const lootName = difficultySelect.value === "普通" ? "箱子" : "袋子";
+  const lootName = getLootName({ kind: getDropKindForDifficulty(difficultySelect.value) });
   const rewardStageChance = getRewardStageChance(bossCount);
 
   multiplierInput.value = multiplier.toFixed(1);
@@ -2340,16 +2354,50 @@ function renderBlacksmith() {
 }
 
 function getLootRarities(loot) {
+  if (loot?.kind === "treasureChest") {
+    return treasureChestRarities;
+  }
+
   return loot?.kind === "chest" ? chestRarities : bagRarities;
 }
 
 function getLootName(loot) {
+  if (loot?.kind === "treasureChest") {
+    return "寶箱";
+  }
+
   return loot?.kind === "chest" ? "箱子" : "袋子";
 }
 
 function openBagRewardByRarity(rarityIndex, kind = "bag") {
   const rarityName = getLootRarities({ kind })[rarityIndex].name;
   const roll = Math.random() * 100;
+
+  if (kind === "treasureChest") {
+    if (rarityName === "普通") {
+      if (roll < 25) return { type: "money", amount: 5000, text: "獲得金錢 5000" };
+      if (roll < 35) return { type: "equipment", item: getRandomEquipment("普通") };
+      if (roll < 80) return { type: "equipment", item: getRandomEquipment("稀有") };
+      return { type: "equipment", item: getRandomEquipment("史詩") };
+    }
+
+    if (rarityName === "稀有") {
+      if (roll < 20) return { type: "money", amount: 8000, text: "獲得金錢 8000" };
+      if (roll < 40) return { type: "equipment", item: getRandomEquipment("稀有") };
+      if (roll < 80) return { type: "equipment", item: getRandomEquipment("史詩") };
+      return { type: "equipment", item: getRandomEquipment("傳奇") };
+    }
+
+    if (rarityName === "史詩") {
+      if (roll < 20) return { type: "money", amount: 10000, text: "獲得金錢 10000" };
+      if (roll < 60) return { type: "equipment", item: getRandomEquipment("史詩") };
+      return { type: "equipment", item: getRandomEquipment("傳奇") };
+    }
+
+    if (roll < 10) return { type: "money", amount: 50000, text: "獲得金錢 50000" };
+    if (roll < 30) return { type: "equipment", item: getRandomEquipment("史詩") };
+    return { type: "equipment", item: getRandomEquipment("傳奇") };
+  }
 
   if (kind === "chest") {
     if (rarityName === "普通") {
@@ -3037,12 +3085,15 @@ function tryDeathSave() {
   return false;
 }
 
+function getDropKindForDifficulty(difficulty) {
+  if (difficulty === "簡單") return "bag";
+  if (difficulty === "普通") return "chest";
+  if (difficulty === "困難") return "treasureChest";
+  return null;
+}
+
 function rollBossBagDrop() {
-  const kind = difficultySelect.value === "簡單"
-    ? "bag"
-    : difficultySelect.value === "普通"
-      ? "chest"
-      : null;
+  const kind = getDropKindForDifficulty(difficultySelect.value);
 
   if (!kind) {
     return false;
@@ -3550,7 +3601,7 @@ function damageBoss() {
     recordDailyBossKill();
     if (currentBossName === "寶箱") {
       battleBags.push({
-        kind: difficultySelect.value === "普通" ? "chest" : "bag",
+        kind: getDropKindForDifficulty(difficultySelect.value),
         rarityIndex: 0,
         upgraded: false,
       });
@@ -3576,7 +3627,7 @@ function shootBullet() {
   bulletLane = tutorialStep === "combat" && currentBossName === "小豬"
     ? playerLane
     : Math.floor(Math.random() * 3);
-  enemy.src = enemyImages[bulletLane];
+  enemy.src = (currentBossName === "普通小豬" ? normalPigEnemyImages : enemyImages)[bulletLane];
   resetBullet();
   playSound(aimSound);
 
@@ -3708,7 +3759,7 @@ function shootNormalBubbleAttack() {
     }
 
     resetBubbleWeapon(false);
-    enemy.src = "outputs/泡泡.png";
+    enemy.src = "outputs/普通泡泡.png";
     if (!isGameOver && currentBossName === "普通泡泡") {
       normalBubbleAttackTimer = setTimeout(shootNormalBubbleAttack, 850);
     }

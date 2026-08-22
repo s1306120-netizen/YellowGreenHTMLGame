@@ -1767,6 +1767,21 @@ h2 {
     overflow: hidden;
   }
 
+  #blacksmith.screen-active,
+  #shop.screen-active {
+    display: grid;
+    place-items: center;
+    height: calc(100dvh - 12px);
+    overflow: hidden;
+  }
+
+  .blacksmith-screen,
+  .shop-screen {
+    min-height: 0;
+    transform: scale(var(--utility-scale, 1));
+    transform-origin: center;
+  }
+
   #lobby {
     min-height: calc(100dvh - 12px);
   }

@@ -383,6 +383,7 @@ let tutorialDialogueMode = null;
 let tutorialTyping = false;
 let tutorialTypingTimer = null;
 let tutorialTypingVersion = 0;
+let tutorialTypingMarkup = "";
 let tutorialAwaitingMove = false;
 let tutorialAwaitingDodge = false;
 let tutorialPigBulletPaused = false;
@@ -648,6 +649,24 @@ function showScreen(screen) {
   shopScreen.classList.toggle("screen-active", screen === "shop");
   dailyTasksScreen.classList.toggle("screen-active", screen === "dailyTasks");
   switchMusic(screen);
+  requestAnimationFrame(fitMobileUtilityScreens);
+}
+
+function fitMobileUtilityScreens() {
+  const isMobile = window.matchMedia("(max-width: 520px)").matches;
+
+  [blacksmithScreen, shopScreen].forEach((screen) => {
+    const surface = screen.firstElementChild;
+    surface.style.setProperty("--utility-scale", "1");
+
+    if (!isMobile || !screen.classList.contains("screen-active")) {
+      return;
+    }
+
+    const availableHeight = window.innerHeight - 12;
+    const scale = Math.min(1, availableHeight / surface.scrollHeight);
+    surface.style.setProperty("--utility-scale", scale.toFixed(3));
+  });
 }
 
 function updateHeroPosition() {
@@ -1954,6 +1973,7 @@ function showBlacksmithMode(mode) {
   blacksmithComposePanel.classList.toggle("is-active", mode === "compose");
   blacksmithUpgradePanel.classList.toggle("is-active", mode === "upgrade");
   blacksmithSmeltPanel.classList.toggle("is-active", mode === "smelt");
+  requestAnimationFrame(fitMobileUtilityScreens);
 }
 
 function resetUpgradeSlot() {
@@ -2964,25 +2984,18 @@ function showResult(title, earnedMoney) {
 
 function gameOver() {
   if (tutorialStep === "combat") {
-    stopEnemyActions();
-    tutorialOverlay.classList.add("is-open");
-    tutorialNextBtn.hidden = currentBossName !== "泡泡";
-    tutorialText.innerHTML = "<span class=\"tutorial-danger\">沒關係，再試一次！</span>";
-    clearTutorialTarget();
-    if (currentBossName === "泡泡") {
-      tutorialDialogueMode = "retry";
-      tutorialNextBtn.textContent = "繼續";
+    if (tutorialDialogueMode === "retry") {
       return;
     }
-    setTimeout(() => {
-      tutorialOverlay.classList.remove("is-open");
-      bossHp = bossMaxHp;
-      updateBossHpText();
-      resetBullet();
-      resetBubbleWeapon();
-      clearGageAttack();
-      startBossIntro();
-    }, 1200);
+
+    stopEnemyActions();
+    tutorialOverlay.classList.remove("is-pass-through");
+    tutorialOverlay.classList.add("is-open");
+    tutorialNextBtn.hidden = false;
+    tutorialText.innerHTML = "<span class=\"tutorial-danger\">沒關係，再試一次！</span>";
+    clearTutorialTarget();
+    tutorialDialogueMode = "retry";
+    tutorialNextBtn.textContent = "繼續";
     return;
   }
 
@@ -3956,6 +3969,7 @@ shopBuyBtn.addEventListener("click", () => {
 shopBackBtn.addEventListener("click", () => showScreen("lobby"));
 
 window.addEventListener("pagehide", saveGame);
+window.addEventListener("resize", () => requestAnimationFrame(fitMobileUtilityScreens));
 
 openComposeModeBtn.addEventListener("click", () => {
   renderBlacksmith();
@@ -4227,6 +4241,7 @@ const tutorialInnerHtmlDescriptor = Object.getOwnPropertyDescriptor(Element.prot
 function typeTutorialMessage(markup) {
   clearTimeout(tutorialTypingTimer);
   const version = ++tutorialTypingVersion;
+  tutorialTypingMarkup = markup;
   const plainText = String(markup).replace(/<br\s*\/?>(?=\s*)/gi, "\n").replace(/<[^>]*>/g, "");
   let index = 0;
 
@@ -4239,8 +4254,7 @@ function typeTutorialMessage(markup) {
     }
 
     if (index >= plainText.length) {
-      tutorialInnerHtmlDescriptor.set.call(tutorialText, markup);
-      tutorialTyping = false;
+      finishTutorialTyping();
       return;
     }
 
@@ -4249,6 +4263,13 @@ function typeTutorialMessage(markup) {
   };
 
   typeNextCharacter();
+}
+
+function finishTutorialTyping() {
+  clearTimeout(tutorialTypingTimer);
+  tutorialTypingVersion += 1;
+  tutorialInnerHtmlDescriptor.set.call(tutorialText, tutorialTypingMarkup);
+  tutorialTyping = false;
 }
 
 Object.defineProperty(tutorialText, "textContent", {
@@ -4315,24 +4336,14 @@ function showBattleTutorialMessage() {
   tutorialDialogueMode = "battle";
   tutorialOverlay.classList.remove("is-pass-through");
   tutorialOverlay.classList.add("is-open");
-  tutorialNextBtn.hidden = currentBossName !== "泡泡";
+  tutorialNextBtn.hidden = false;
   if (currentBossName === "小豬") {
     tutorialText.innerHTML = `${bossTips[currentBossName]}<br><span class="tutorial-danger">移動有冷卻時間，先看清楚敵人的動向再移動！</span>`;
   } else {
     setTutorialMessage(bossTips[currentBossName]);
   }
 
-  if (currentBossName === "泡泡") {
-    tutorialNextBtn.textContent = "繼續";
-    return;
-  }
-
-  clearTimeout(tutorialPauseTimer);
-  tutorialPauseTimer = setTimeout(() => {
-    tutorialDialogueMode = null;
-    tutorialOverlay.classList.remove("is-open");
-    startEnemyActions();
-  }, 2200);
+  tutorialNextBtn.textContent = "繼續";
 }
 
 function finishTutorialForNow() {
@@ -4361,14 +4372,9 @@ tutorialNextBtn.addEventListener("click", () => {
 
   if (tutorialDialogueMode === "battle") {
     tutorialDialogueMode = null;
-    if (currentBossName === "泡泡") {
-      tutorialOverlay.classList.remove("is-open");
-      startEnemyActions();
-      return;
-    }
-    tutorialAwaitingMove = true;
     tutorialOverlay.classList.remove("is-open");
     clearTutorialTarget();
+    startEnemyActions();
     return;
   }
 
@@ -4432,6 +4438,7 @@ tutorialOverlay.addEventListener("click", (event) => {
   if (tutorialTyping) {
     event.preventDefault();
     event.stopImmediatePropagation();
+    finishTutorialTyping();
     return;
   }
 

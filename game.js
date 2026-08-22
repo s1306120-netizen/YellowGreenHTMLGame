@@ -232,6 +232,10 @@ let gageTimers = [];
 let gageHazardCells = [];
 let gageHazardActive = false;
 let normalGageHazards = [];
+let pigBombTimers = [];
+let pigBombCells = [];
+let pigBombActive = false;
+let pigBombVisuals = [];
 let isGameOver = false;
 let isKoPlaying = false;
 let isOpeningBagReward = false;
@@ -271,6 +275,7 @@ const bossData = [
   { name: "格格", difficulty: "簡單", hp: 150, defense: 0 },
   { name: "普通格格", displayName: "格格", difficulty: "普通", hp: 400, defense: 10 },
   { name: "普通小豬", displayName: "小豬", difficulty: "普通", hp: 350, defense: 15 },
+  { name: "困難小豬", displayName: "小豬", difficulty: "困難", hp: 750, defense: 30 },
 ];
 const tutorialBossSequence = ["小豬", "泡泡", "格格"];
 const rewardBossData = { name: "寶箱", hp: 50, defense: 0 };
@@ -278,6 +283,7 @@ const rewardBossData = { name: "寶箱", hp: 50, defense: 0 };
 function getBossImageName() {
   if (currentBossName === "普通泡泡") return "普通泡泡";
   if (currentBossName === "普通格格") return "格格";
+  if (currentBossName === "困難小豬") return "普通小豬";
   return currentBossName;
 }
 
@@ -778,6 +784,12 @@ function updateDifficultyInfo() {
     const pierceClass = playerStats.pierce >= 10 ? "recommendation-good" : "recommendation-bad";
 
     recommendationText.innerHTML = `建議<br><span class="${cooldownClass}">移動冷卻：0.5秒</span><span class="${pierceClass}">破防：10</span>`;
+    recommendationText.classList.add("is-visible");
+  } else if (difficultySelect.value === "困難") {
+    const cooldownClass = playerStats.moveCooldown <= 100 ? "recommendation-good" : "recommendation-bad";
+    const pierceClass = playerStats.pierce >= 30 ? "recommendation-good" : "recommendation-bad";
+
+    recommendationText.innerHTML = `建議<br><span class="${cooldownClass}">移動冷卻：0.1秒</span><span class="${pierceClass}">破防：30</span>`;
     recommendationText.classList.add("is-visible");
   } else {
     recommendationText.textContent = "";
@@ -2658,6 +2670,7 @@ function resetBullet() {
   bullet.style.removeProperty("top");
   bullet.style.removeProperty("--normal-pig-curve");
   bullet.style.removeProperty("--normal-pig-curve-negative");
+  bullet.style.removeProperty("--normal-pig-curve-duration");
   bullet.style.setProperty("--bullet-y", "7px");
   bullet.style.setProperty("--bullet-lane", bulletLane);
   bullet.style.left = `${(bulletLane + 0.5) * (100 / 3)}%`;
@@ -2721,6 +2734,77 @@ function clearGageAttack() {
   void gageAttack.offsetWidth;
   gageAttack.style.removeProperty("transition");
   lanes.forEach((lane) => lane.classList.remove("gage-warning", "gage-yellow", "gage-red"));
+}
+
+function clearPigBombAttack() {
+  pigBombTimers.forEach(clearTimeout);
+  pigBombTimers = [];
+  pigBombCells = [];
+  pigBombActive = false;
+  pigBombVisuals.forEach((bomb) => bomb.remove());
+  pigBombVisuals = [];
+  lanes.forEach((lane) => lane.classList.remove("gage-warning", "gage-yellow", "gage-red"));
+}
+
+function schedulePigBombAction(callback, delay) {
+  const timer = setTimeout(() => {
+    pigBombTimers = pigBombTimers.filter((entry) => entry !== timer);
+    callback();
+  }, delay);
+  pigBombTimers.push(timer);
+}
+
+function showPigBombCells(className) {
+  lanes.forEach((lane, index) => {
+    lane.classList.remove("gage-warning", "gage-yellow", "gage-red");
+    if (pigBombCells.includes(index)) {
+      lane.classList.add(className);
+    }
+  });
+}
+
+function checkPigBombHazard() {
+  if (!pigBombActive) {
+    return;
+  }
+
+  const playerCell = (2 - playerRow) * 3 + playerLane;
+  if (pigBombCells.includes(playerCell) && !tryDeathSave()) {
+    gameOver();
+  }
+}
+
+function shootHardPigBomb() {
+  if (isGameOver || currentBossName !== "困難小豬") {
+    return;
+  }
+
+  clearPigBombAttack();
+  enemy.src = "outputs/困難小豬(準備放炸彈).png";
+  pigBombCells = [0, 1, 2, 3, 5, 6, 7, 8];
+  showPigBombCells("gage-yellow");
+  pigBombVisuals = pigBombCells.map((cell) => {
+    const bomb = document.createElement("img");
+    bomb.className = "pig-bomb";
+    bomb.src = "outputs/小豬炸彈圖.png";
+    bomb.alt = "小豬炸彈";
+    lanes[cell].appendChild(bomb);
+    return bomb;
+  });
+
+  schedulePigBombAction(() => {
+    pigBombVisuals.forEach((bomb) => bomb.classList.add("is-flashing"));
+  }, 500);
+  schedulePigBombAction(() => {
+    pigBombVisuals.forEach((bomb) => bomb.classList.remove("is-flashing"));
+    showPigBombCells("gage-red");
+    pigBombActive = true;
+    checkPigBombHazard();
+  }, 1000);
+  schedulePigBombAction(() => {
+    clearPigBombAttack();
+    enemy.src = `outputs/${getBossImageName()}.png`;
+  }, 1500);
 }
 
 function scheduleGageAction(callback, delay) {
@@ -2938,6 +3022,7 @@ function movePlayer(horizontal, vertical = 0) {
   playerRow = nextRow;
   updateHeroPosition();
   checkGageHazard();
+  checkPigBombHazard();
 
   if (tutorialAwaitingMove) {
     tutorialAwaitingMove = false;
@@ -3614,7 +3699,7 @@ function damageBoss() {
   }
 }
 
-function shootBullet() {
+function shootBullet(forcedLane = null) {
   if (isGameOver) {
     return;
   }
@@ -3624,10 +3709,10 @@ function shootBullet() {
     return;
   }
 
-  bulletLane = tutorialStep === "combat" && currentBossName === "小豬"
+  bulletLane = forcedLane ?? (tutorialStep === "combat" && currentBossName === "小豬"
     ? playerLane
-    : Math.floor(Math.random() * 3);
-  enemy.src = (currentBossName === "普通小豬" ? normalPigEnemyImages : enemyImages)[bulletLane];
+    : Math.floor(Math.random() * 3));
+  enemy.src = (["普通小豬", "困難小豬"].includes(currentBossName) ? normalPigEnemyImages : enemyImages)[bulletLane];
   resetBullet();
   playSound(aimSound);
 
@@ -3662,10 +3747,13 @@ function shootBullet() {
     const bulletEndY = arena.clientHeight - bullet.offsetHeight;
 
     bullet.classList.add("is-active");
-    if (currentBossName === "普通小豬") {
+    if (["普通小豬", "困難小豬"].includes(currentBossName)) {
       const curveDistance = arena.clientWidth * 0.55;
       bullet.style.setProperty("--normal-pig-curve", `${curveDistance}px`);
       bullet.style.setProperty("--normal-pig-curve-negative", `-${curveDistance}px`);
+      if (currentBossName === "困難小豬") {
+        bullet.style.setProperty("--normal-pig-curve-duration", "917ms");
+      }
       if (bulletLane === 0) {
         bullet.classList.add("is-normal-pig-left");
       } else if (bulletLane === 2) {
@@ -3681,11 +3769,30 @@ function shootBullet() {
     bullet.style.setProperty("--bullet-y", `${bulletEndY}px`);
     enemy.src = `outputs/${getBossImageName()}.png`;
     hitAnimation = requestAnimationFrame(watchBulletHit);
-    const bulletDuration = currentBossName === "普通小豬"
-      ? bulletLane === 1 ? 620 : 1100
+    const bulletDuration = ["普通小豬", "困難小豬"].includes(currentBossName)
+      ? bulletLane === 1 ? 620 : currentBossName === "困難小豬" ? 917 : 1100
       : currentBossName === "小豬" ? 620 : 1240;
     bulletEndTimer = setTimeout(resetBullet, bulletDuration);
   }, 500);
+}
+
+function shootHardPigAttack() {
+  if (isGameOver || currentBossName !== "困難小豬") {
+    return;
+  }
+
+  const attackRoll = Math.random();
+  if (attackRoll < 0.25) {
+    shootBullet(1);
+  } else if (attackRoll < 0.5) {
+    shootBullet(0);
+  } else if (attackRoll < 0.75) {
+    shootBullet(2);
+  } else {
+    shootHardPigBomb();
+  }
+
+  enemyAttackDelayTimer = setTimeout(shootHardPigAttack, 1800);
 }
 
 function shootBubbleWeapon() {
@@ -3790,6 +3897,8 @@ function startEnemyActions() {
   enemy.src = `outputs/${getBossImageName()}.png`;
   if (currentBossName === "寶箱") {
     // The reward chest never attacks.
+  } else if (currentBossName === "困難小豬") {
+    enemyAttackDelayTimer = setTimeout(shootHardPigAttack, 1000);
   } else if (isGageBoss()) {
     enemyAttackDelayTimer = setTimeout(shootGageAttack, 1000);
   } else if (currentBossName === "普通泡泡") {
@@ -3826,6 +3935,7 @@ function stopEnemyActions() {
   cancelAnimationFrame(hitAnimation);
   cancelAnimationFrame(playerHitAnimation);
   clearGageAttack();
+  clearPigBombAttack();
   bulletTimer = null;
   bubbleSoundTimer = null;
   warningTimer = null;

@@ -1272,6 +1272,7 @@ h2 {
 }
 
 .lane {
+  position: relative;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -1294,6 +1295,25 @@ h2 {
 
 .lane.gage-red {
   background: rgba(211, 50, 45, 0.82);
+}
+
+.pig-bomb {
+  position: absolute;
+  left: 50%;
+  bottom: 12px;
+  z-index: 25;
+  width: min(70%, 70px);
+  height: auto;
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.pig-bomb.is-flashing {
+  animation: pig-bomb-flash 500ms steps(2, end);
+}
+
+@keyframes pig-bomb-flash {
+  50% { opacity: 0.2; transform: translateX(-50%) scale(1.18); }
 }
 
 .gage-attack {
@@ -1406,11 +1426,11 @@ h2 {
 }
 
 .bullet.is-normal-pig-left {
-  animation: normal-pig-curve-right 1100ms linear;
+  animation: normal-pig-curve-right var(--normal-pig-curve-duration, 1100ms) linear;
 }
 
 .bullet.is-normal-pig-right {
-  animation: normal-pig-curve-left 1100ms linear;
+  animation: normal-pig-curve-left var(--normal-pig-curve-duration, 1100ms) linear;
 }
 
 .bullet.is-normal-pig-middle {

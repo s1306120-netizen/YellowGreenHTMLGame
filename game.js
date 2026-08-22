@@ -380,6 +380,9 @@ let tutorialStep = "intro";
 let tutorialDialogueIndex = 0;
 let tutorialTarget = null;
 let tutorialDialogueMode = null;
+let tutorialTyping = false;
+let tutorialTypingTimer = null;
+let tutorialTypingVersion = 0;
 let tutorialAwaitingMove = false;
 let tutorialAwaitingDodge = false;
 let tutorialPigBulletPaused = false;
@@ -4218,6 +4221,48 @@ const tutorialIntroLines = [
   "擊敗 BOSS 能拿到袋子、裝備和金錢。接下來我會帶你完成第一場挑戰！",
 ];
 
+const tutorialTextContentDescriptor = Object.getOwnPropertyDescriptor(Node.prototype, "textContent");
+const tutorialInnerHtmlDescriptor = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");
+
+function typeTutorialMessage(markup) {
+  clearTimeout(tutorialTypingTimer);
+  const version = ++tutorialTypingVersion;
+  const plainText = String(markup).replace(/<br\s*\/?>(?=\s*)/gi, "\n").replace(/<[^>]*>/g, "");
+  let index = 0;
+
+  tutorialTyping = true;
+  tutorialTextContentDescriptor.set.call(tutorialText, "");
+
+  const typeNextCharacter = () => {
+    if (version !== tutorialTypingVersion) {
+      return;
+    }
+
+    if (index >= plainText.length) {
+      tutorialInnerHtmlDescriptor.set.call(tutorialText, markup);
+      tutorialTyping = false;
+      return;
+    }
+
+    tutorialTextContentDescriptor.set.call(tutorialText, plainText.slice(0, ++index));
+    tutorialTypingTimer = setTimeout(typeNextCharacter, 28);
+  };
+
+  typeNextCharacter();
+}
+
+Object.defineProperty(tutorialText, "textContent", {
+  configurable: true,
+  get: () => tutorialTextContentDescriptor.get.call(tutorialText),
+  set: (value) => typeTutorialMessage(String(value)),
+});
+
+Object.defineProperty(tutorialText, "innerHTML", {
+  configurable: true,
+  get: () => tutorialInnerHtmlDescriptor.get.call(tutorialText),
+  set: (value) => typeTutorialMessage(String(value)),
+});
+
 function clearTutorialTarget() {
   tutorialTarget?.classList.remove("tutorial-target");
   tutorialTarget = null;
@@ -4382,6 +4427,28 @@ tutorialOverlay.addEventListener("click", (event) => {
     tutorialNextBtn.click();
   }
 });
+
+tutorialOverlay.addEventListener("click", (event) => {
+  if (tutorialTyping) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    return;
+  }
+
+  if (
+    tutorialNextBtn.hidden ||
+    event.target === tutorialNextBtn ||
+    event.target.closest?.(".tutorial-target") ||
+    tutorialOverlay.classList.contains("is-pass-through") ||
+    !(tutorialStep === "intro" || tutorialDialogueMode)
+  ) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  tutorialNextBtn.click();
+}, true);
 
 document.querySelector(".tutorial-dialogue").addEventListener("click", () => {
   if (tutorialDialogueMode === "bags") {

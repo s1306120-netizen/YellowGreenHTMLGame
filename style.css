@@ -44,8 +44,9 @@ button {
 .tutorial-target {
   position: relative;
   z-index: 101 !important;
-  outline: 3px solid #ffd326;
-  outline-offset: 4px;
+  outline: 5px solid #ffd326;
+  outline-offset: 6px;
+  box-shadow: 0 0 0 3px #4b3d00, 0 0 16px #ffd326;
 }
 
 .settings-modal.tutorial-modal {
@@ -62,7 +63,8 @@ button {
   z-index: 102;
   display: none;
   color: #ffd326;
-  font-size: 38px;
+  font-size: 56px;
+  font-weight: 900;
   line-height: 1;
   pointer-events: none;
   text-shadow: 0 2px 2px #000;

@@ -620,7 +620,7 @@ function switchMusic(screen) {
   currentScreenName = screen;
   applyVolumeSettings();
 
-  if (screen === "game") {
+  if (screen === "game" || screen === "bagOpening") {
     lobbyMusic.pause();
     battleMusic.currentTime = 0;
     playMusic(battleMusic);
@@ -2172,8 +2172,8 @@ function collectUpgradeResult() {
     saveGame();
     showScreen("lobby");
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "先點其他，再點包包，穿上剛剛合成的石劍。";
-    setTutorialTarget(otherButton);
+    tutorialText.textContent = "現在點下方的包包，穿上剛剛合成的石劍。";
+    setTutorialTarget(bottomBagBtn);
   }
 }
 
@@ -3348,8 +3348,8 @@ function finishBagOpening() {
   collectPendingMoney();
   if (tutorialStep === "compose") {
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "你拿到了三把普通武器。先點其他，再點鐵匠鋪，來試著合成吧！";
-    setTutorialTarget(otherButton);
+    tutorialText.textContent = "你拿到了三把普通武器。現在點下方的鐵匠鋪，來試著合成吧！";
+    setTutorialTarget(bottomBlacksmithBtn);
   }
 }
 
@@ -4051,8 +4051,8 @@ closeHeroInfoBtn.addEventListener("click", () => {
     tutorialStep = "dailyIntro";
     saveGame();
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "接著看看每日任務。先點其他，再點每日任務。";
-    setTutorialTarget(otherButton);
+    tutorialText.textContent = "接著看看每日任務。現在點下方的每日任務。";
+    setTutorialTarget(bottomDailyTaskBtn);
   }
 });
 
@@ -4073,8 +4073,7 @@ bottomBagBtn.addEventListener("click", () => {
 bottomBattleBtn.addEventListener("click", () => showScreen("lobby"));
 bottomShopBtn.addEventListener("click", () => shopButton.click());
 bottomDailyTaskBtn.addEventListener("click", () => {
-  updateDailyTaskUi();
-  showScreen("dailyTasks");
+  dailyTaskBtn.click();
 });
 
 otherButton.addEventListener("click", () => {
@@ -4129,8 +4128,8 @@ dailyLoginBtn.addEventListener("click", () => {
     saveGame();
     showScreen("lobby");
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "再來看看商店。先點其他，再點商店。";
-    setTutorialTarget(otherButton);
+    tutorialText.textContent = "再來看看商店。現在點下方的商店。";
+    setTutorialTarget(bottomShopBtn);
   }
 });
 dailyBossBtn.addEventListener("click", () => claimDailyTask("boss", dailyTasks?.bossKills >= 1));
@@ -4188,8 +4187,8 @@ shopBuyBtn.addEventListener("click", () => {
     saveGame();
     showScreen("lobby");
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "現在介紹熔煉。先點其他，再點鐵匠鋪。";
-    setTutorialTarget(otherButton);
+    tutorialText.textContent = "現在介紹熔煉。請點下方的鐵匠鋪。";
+    setTutorialTarget(bottomBlacksmithBtn);
   }
 });
 shopBackBtn.addEventListener("click", () => showScreen("lobby"));
@@ -4232,8 +4231,8 @@ blacksmithBackBtn.addEventListener("click", () => {
   if (tutorialStep === "upgrade") {
     showScreen("lobby");
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "先點其他，再點鐵匠鋪，進入升級教學。";
-    setTutorialTarget(otherButton);
+    tutorialText.textContent = "請點下方的鐵匠鋪，進入升級教學。";
+    setTutorialTarget(bottomBlacksmithBtn);
     return;
   }
   showBlacksmithMode("select");

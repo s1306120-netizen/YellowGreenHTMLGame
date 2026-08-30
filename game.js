@@ -1,5 +1,6 @@
 const lobbyScreen = document.getElementById("lobby");
 const gameScreen = document.getElementById("game");
+const bagScreen = document.getElementById("bag");
 const bagOpeningScreen = document.getElementById("bagOpening");
 const blacksmithScreen = document.getElementById("blacksmith");
 const shopScreen = document.getElementById("shop");
@@ -11,6 +12,11 @@ const difficultyInfo = document.getElementById("difficultyInfo");
 const bagButton = document.getElementById("bagButton");
 const blacksmithButton = document.getElementById("blacksmithButton");
 const shopButton = document.getElementById("shopButton");
+const bottomBlacksmithBtn = document.getElementById("bottomBlacksmithBtn");
+const bottomBagBtn = document.getElementById("bottomBagBtn");
+const bottomBattleBtn = document.getElementById("bottomBattleBtn");
+const bottomShopBtn = document.getElementById("bottomShopBtn");
+const bottomDailyTaskBtn = document.getElementById("bottomDailyTaskBtn");
 const otherButton = document.getElementById("otherButton");
 const otherMenuModal = document.getElementById("otherMenuModal");
 const otherBagBtn = document.getElementById("otherBagBtn");
@@ -29,13 +35,18 @@ const dailyOpenTaskText = document.getElementById("dailyOpenTaskText");
 const dailyTasksBackBtn = document.getElementById("dailyTasksBackBtn");
 const difficultyModal = document.getElementById("difficultyModal");
 const heroInfoModal = document.getElementById("heroInfoModal");
-const inventoryModal = document.getElementById("inventoryModal");
 const closeDifficultyBtn = document.getElementById("closeDifficultyBtn");
 const closeHeroInfoBtn = document.getElementById("closeHeroInfoBtn");
-const closeInventoryBtn = document.getElementById("closeInventoryBtn");
 const heroInfoBtn = document.getElementById("heroInfoBtn");
 const heroStatsList = document.getElementById("heroStatsList");
 const inventoryList = document.getElementById("inventoryList");
+const inventoryFilterBtn = document.getElementById("inventoryFilterBtn");
+const inventoryFilterPanel = document.getElementById("inventoryFilterPanel");
+const rarityFilterOperator = document.getElementById("rarityFilterOperator");
+const rarityFilterValue = document.getElementById("rarityFilterValue");
+const levelFilterOperator = document.getElementById("levelFilterOperator");
+const levelFilterValue = document.getElementById("levelFilterValue");
+const typeFilterValue = document.getElementById("typeFilterValue");
 const equippedWeapon = document.getElementById("equippedWeapon");
 const equippedWeaponLevel = document.getElementById("equippedWeaponLevel");
 const equippedArmor = document.getElementById("equippedArmor");
@@ -44,6 +55,13 @@ const equippedShoes = document.getElementById("equippedShoes");
 const equippedShoesLevel = document.getElementById("equippedShoesLevel");
 const equippedAccessory = document.getElementById("equippedAccessory");
 const equippedAccessoryLevel = document.getElementById("equippedAccessoryLevel");
+const bagHeroInfoBtn = document.getElementById("bagHeroInfoBtn");
+const bagEquippedSlots = {
+  "武器": { element: document.getElementById("bagEquippedWeapon"), level: document.getElementById("bagEquippedWeaponLevel"), empty: "outputs/空武器圖.png", alt: "空武器" },
+  "護甲": { element: document.getElementById("bagEquippedArmor"), level: document.getElementById("bagEquippedArmorLevel"), empty: "outputs/空護甲圖.png", alt: "空護甲" },
+  "靴子": { element: document.getElementById("bagEquippedShoes"), level: document.getElementById("bagEquippedShoesLevel"), empty: "outputs/空靴子圖.png", alt: "空鞋子" },
+  "飾品": { element: document.getElementById("bagEquippedAccessory"), level: document.getElementById("bagEquippedAccessoryLevel"), empty: "outputs/空飾品圖.png", alt: "空飾品" },
+};
 const itemModal = document.getElementById("itemModal");
 const itemModalImage = document.getElementById("itemModalImage");
 const itemModalName = document.getElementById("itemModalName");
@@ -118,7 +136,8 @@ const blacksmithSmeltPanel = document.getElementById("blacksmithSmeltPanel");
 const openUpgradeModeBtn = document.getElementById("openUpgradeModeBtn");
 const openComposeModeBtn = document.getElementById("openComposeModeBtn");
 const openSmeltModeBtn = document.getElementById("openSmeltModeBtn");
-const blacksmithSelectBackBtn = document.getElementById("blacksmithSelectBackBtn");
+const lobbyBottomUi = document.querySelector(".lobby-bottom-ui");
+const lobbyBottomIcons = document.querySelector(".lobby-bottom-icons");
 const blacksmithResult = document.getElementById("blacksmithResult");
 const blacksmithBackBtn = document.getElementById("blacksmithBackBtn");
 const shopItemSlot = document.getElementById("shopItemSlot");
@@ -504,7 +523,7 @@ function playMusic(music) {
   music.play()
     .then(() => {
       const shouldKeepPlaying = music === lobbyMusic
-        ? ["lobby", "blacksmith", "shop", "dailyTasks"].includes(currentScreenName)
+        ? ["lobby", "bag", "blacksmith", "shop", "dailyTasks"].includes(currentScreenName)
         : currentScreenName === "game";
 
       if (!shouldKeepPlaying) {
@@ -614,7 +633,7 @@ function switchMusic(screen) {
     return;
   }
 
-  if (screen === "lobby" || screen === "blacksmith" || screen === "shop" || screen === "dailyTasks") {
+  if (screen === "lobby" || screen === "bag" || screen === "blacksmith" || screen === "shop" || screen === "dailyTasks") {
     playMusic(lobbyMusic);
   }
 }
@@ -664,10 +683,15 @@ function showScreen(screen) {
   document.body.classList.toggle("is-battle", screen === "game");
   lobbyScreen.classList.toggle("screen-active", screen === "lobby");
   gameScreen.classList.toggle("screen-active", screen === "game");
+  bagScreen.classList.toggle("screen-active", screen === "bag");
   bagOpeningScreen.classList.toggle("screen-active", screen === "bagOpening");
   blacksmithScreen.classList.toggle("screen-active", screen === "blacksmith");
   shopScreen.classList.toggle("screen-active", screen === "shop");
   dailyTasksScreen.classList.toggle("screen-active", screen === "dailyTasks");
+  if (screen !== "blacksmith") {
+    lobbyBottomUi.classList.remove("is-hidden");
+    lobbyBottomIcons.classList.remove("is-hidden");
+  }
   switchMusic(screen);
   requestAnimationFrame(fitMobileUtilityScreens);
 }
@@ -1418,6 +1442,11 @@ function updateEquippedImages() {
     slot.element.src = item ? item.image : slot.empty;
     slot.element.alt = item ? item.name : slot.alt;
     setLevelLabel(slot.level, item);
+
+    const bagSlot = bagEquippedSlots[type];
+    bagSlot.element.src = item ? item.image : bagSlot.empty;
+    bagSlot.element.alt = item ? item.name : bagSlot.alt;
+    setLevelLabel(bagSlot.level, item);
   });
 }
 
@@ -1809,12 +1838,18 @@ function buyShopItem() {
 
   money -= price;
   addEquipmentToInventory(shopItem);
+  shopItemImage.classList.remove("is-purchased");
+  void shopItemImage.offsetWidth;
+  shopItemImage.classList.add("is-purchased");
   consumeAlienBuff("shop");
-  shopItem = null;
   updateMoneyText();
-  updateShopUi();
+  shopBuyBtn.disabled = true;
   showShopResult("購買成功", "success");
-  saveGame();
+  setTimeout(() => {
+    shopItem = null;
+    updateShopUi();
+    saveGame();
+  }, 420);
   return true;
 }
 
@@ -1999,6 +2034,8 @@ function showBlacksmithMode(mode) {
   blacksmithComposePanel.classList.toggle("is-active", mode === "compose");
   blacksmithUpgradePanel.classList.toggle("is-active", mode === "upgrade");
   blacksmithSmeltPanel.classList.toggle("is-active", mode === "smelt");
+  lobbyBottomUi.classList.toggle("is-hidden", mode !== "select");
+  lobbyBottomIcons.classList.toggle("is-hidden", mode !== "select");
   requestAnimationFrame(fitMobileUtilityScreens);
 }
 
@@ -2553,12 +2590,25 @@ function collectBagReward(bag) {
 function updateInventoryList() {
   inventoryList.innerHTML = "";
 
-  if (inventory.length === 0) {
+  const rarityOrder = ["普通", "稀有", "史詩", "傳奇"];
+  const compare = (value, target, operator) => operator === "any"
+    || operator === "gt" && value > target
+    || operator === "lt" && value < target
+    || operator === "eq" && value === target;
+  const filteredInventory = sortInventoryItems(inventory).filter((item) => {
+    const rarityMatches = compare(rarityOrder.indexOf(item.rarity), rarityOrder.indexOf(rarityFilterValue.value), rarityFilterOperator.value);
+    const levelMatches = compare(item.level || 1, Math.max(1, Number(levelFilterValue.value) || 1), levelFilterOperator.value);
+    const typeMatches = typeFilterValue.value === "any" || item.type === typeFilterValue.value;
+
+    return rarityMatches && levelMatches && typeMatches;
+  });
+
+  if (filteredInventory.length === 0) {
     inventoryList.textContent = "目前沒有裝備";
     return;
   }
 
-  sortInventoryItems(inventory).forEach((item) => {
+  filteredInventory.forEach((item) => {
     const row = document.createElement("button");
     const image = document.createElement("img");
 
@@ -4005,11 +4055,23 @@ closeHeroInfoBtn.addEventListener("click", () => {
 
 bagButton.addEventListener("click", () => {
   updateInventoryList();
-  inventoryModal.classList.add("is-active");
+  updateEquippedImages();
+  showScreen("bag");
   if (tutorialStep === "equip") {
     tutorialOverlay.classList.remove("is-open");
     clearTutorialTarget();
   }
+});
+
+bottomBlacksmithBtn.addEventListener("click", () => blacksmithButton.click());
+bottomBagBtn.addEventListener("click", () => {
+  bagButton.click();
+});
+bottomBattleBtn.addEventListener("click", () => showScreen("lobby"));
+bottomShopBtn.addEventListener("click", () => shopButton.click());
+bottomDailyTaskBtn.addEventListener("click", () => {
+  updateDailyTaskUi();
+  showScreen("dailyTasks");
 });
 
 otherButton.addEventListener("click", () => {
@@ -4162,21 +4224,23 @@ openSmeltModeBtn.addEventListener("click", () => {
   }
 });
 
-blacksmithSelectBackBtn.addEventListener("click", () => showScreen("lobby"));
-
 blacksmithBackBtn.addEventListener("click", () => {
   collectForgeResult();
-  showScreen("lobby");
   if (tutorialStep === "upgrade") {
+    showScreen("lobby");
     tutorialOverlay.classList.add("is-open");
     tutorialText.textContent = "先點其他，再點鐵匠鋪，進入升級教學。";
     setTutorialTarget(otherButton);
+    return;
   }
+  showBlacksmithMode("select");
 });
 
 upgradeBackBtn.addEventListener("click", () => {
   collectUpgradeResult();
-  showScreen("lobby");
+  if (tutorialStep !== "equip") {
+    showBlacksmithMode("select");
+  }
 });
 
 blacksmithResultSlot.addEventListener("click", collectForgeResult);
@@ -4201,11 +4265,9 @@ forgeSlotButtons.forEach((button, index) => {
 
 smeltBackBtn.addEventListener("click", () => {
   collectSmeltResult();
-  showScreen("lobby");
-});
-
-closeInventoryBtn.addEventListener("click", () => {
-  inventoryModal.classList.remove("is-active");
+  if (tutorialStep !== "final") {
+    showBlacksmithMode("select");
+  }
 });
 
 itemModalActionBtn.addEventListener("click", () => {
@@ -4220,10 +4282,11 @@ itemModalActionBtn.addEventListener("click", () => {
   }
 
   itemModal.classList.remove("is-active");
-  inventoryModal.classList.remove("is-active");
+  updateInventoryList();
   if (tutorialStep === "equip") {
     tutorialStep = "hero";
     saveGame();
+    showScreen("lobby");
     tutorialOverlay.classList.add("is-open");
     tutorialText.textContent = "現在點愛的家查看角色數值。";
     setTutorialTarget(heroInfoBtn);
@@ -4232,6 +4295,24 @@ itemModalActionBtn.addEventListener("click", () => {
 
 closeItemModalBtn.addEventListener("click", () => {
   itemModal.classList.remove("is-active");
+});
+
+inventoryFilterBtn.addEventListener("click", () => {
+  inventoryFilterPanel.classList.toggle("is-open");
+});
+
+[rarityFilterOperator, rarityFilterValue, levelFilterOperator, levelFilterValue, typeFilterValue].forEach((control) => {
+  control.addEventListener("input", updateInventoryList);
+  control.addEventListener("change", updateInventoryList);
+});
+
+document.querySelectorAll(".bag-equipped-slot").forEach((slot) => {
+  slot.addEventListener("click", () => {
+    const item = equippedItems[slot.dataset.bagType];
+    if (item) {
+      showItemModal(item, "unequip");
+    }
+  });
 });
 
 applySaveEditorBtn.addEventListener("click", applySaveEditor);
@@ -4371,7 +4452,7 @@ function setBackgroundSoundEnabled(enabled) {
     battleMusic.pause();
   } else if (currentScreenName === "game") {
     playMusic(battleMusic);
-  } else if (["lobby", "blacksmith", "shop", "dailyTasks"].includes(currentScreenName)) {
+  } else if (["lobby", "bag", "blacksmith", "shop", "dailyTasks"].includes(currentScreenName)) {
     playMusic(lobbyMusic);
   }
 

@@ -18,9 +18,27 @@
   <main class="app">
     <img id="alienFlyer" class="alien-flyer" src="outputs/外星人.png" alt="外星人">
     <div id="alienNotice" class="alien-notice">外星人出現了!</div>
+    <div class="money-display">
+      <img class="money-icon" src="outputs/錢.png" alt="錢">
+      <span id="moneyText">0</span>
+    </div>
+    <button id="volumeToggleBtn" class="volume-toggle-button" type="button">設定</button>
+    <div id="volumeControls" class="volume-controls">
+      <label>背景音樂<input id="bgVolumeInput" type="range" min="0" max="100" value="65"><button id="bgSoundToggleBtn" class="mobile-sound-toggle" type="button"></button></label>
+      <label>特效音樂<input id="sfxVolumeInput" type="range" min="0" max="100" value="85"><button id="sfxSoundToggleBtn" class="mobile-sound-toggle" type="button"></button></label>
+      <button id="deleteAccountBtn" class="delete-account-button" type="button">刪除帳號</button>
+    </div>
+    <img class="lobby-bottom-ui" src="outputs/下方UI圖.png" alt="下方介面">
+    <nav class="lobby-bottom-icons" aria-label="快速功能">
+      <button id="bottomBlacksmithBtn" type="button"><img src="outputs/鐵匠鋪圖.png" alt="鐵匠鋪"></button>
+      <button id="bottomBagBtn" type="button"><img src="outputs/包包圖.png" alt="包包"></button>
+      <button id="bottomBattleBtn" type="button"><img src="outputs/戰鬥圖.png" alt="回大廳"></button>
+      <button id="bottomShopBtn" type="button"><img src="outputs/商店鋪圖.png" alt="商店鋪"></button>
+      <button id="bottomDailyTaskBtn" type="button"><img src="outputs/每日任務圖.png" alt="每日任務"></button>
+    </nav>
     <section id="lobby" class="screen screen-active">
       <button id="otherButton" class="other-button" type="button">
-        <img src="outputs/其他圖.png" alt="其他">
+        <img src="outputs/每日任務圖.png" alt="每日任務">
       </button>
       <button id="bagButton" class="bag-button lobby-shortcut" type="button">
         <img src="outputs/包包圖.png" alt="包包">
@@ -31,24 +49,6 @@
       <button id="shopButton" class="shop-button lobby-shortcut" type="button">
         <img src="outputs/商店鋪圖.png" alt="商店鋪">
       </button>
-      <div class="money-display">
-        <img class="money-icon" src="outputs/錢.png" alt="錢">
-        <span id="moneyText">0</span>
-      </div>
-      <button id="volumeToggleBtn" class="volume-toggle-button" type="button">設定</button>
-      <div id="volumeControls" class="volume-controls">
-        <label>
-          背景音樂
-          <input id="bgVolumeInput" type="range" min="0" max="100" value="65">
-          <button id="bgSoundToggleBtn" class="mobile-sound-toggle" type="button"></button>
-        </label>
-        <label>
-          特效音樂
-          <input id="sfxVolumeInput" type="range" min="0" max="100" value="85">
-          <button id="sfxSoundToggleBtn" class="mobile-sound-toggle" type="button"></button>
-        </label>
-        <button id="deleteAccountBtn" class="delete-account-button" type="button">刪除帳號</button>
-      </div>
       <h1>愛的家の小遊戲</h1>
       <div class="lobby-hero-wrap">
         <img id="equippedWeapon" class="lobby-equipment equip-weapon" src="outputs/空武器圖.png" alt="空武器">
@@ -70,7 +70,7 @@
         <span id="rewardText">會獲得的東西：金錢100</span>
         <span id="recommendationText" class="recommendation-text"></span>
       </button>
-      <div class="game-version">版本 1.41</div>
+      <div class="game-version">版本 1.43</div>
       <button id="startBtn" class="primary-button" type="button">開始</button>
       <div class="death-warning-text">死亡會掉落身上全部裝備</div>
 
@@ -109,24 +109,6 @@
         </div>
       </div>
 
-      <div id="inventoryModal" class="settings-modal">
-        <div class="settings-box inventory-box">
-          <h2>包包</h2>
-          <div id="inventoryList" class="inventory-list"></div>
-          <button id="closeInventoryBtn" class="small-button" type="button">關閉</button>
-        </div>
-      </div>
-
-      <div id="itemModal" class="settings-modal">
-        <div class="settings-box item-box">
-          <img id="itemModalImage" class="item-modal-image" src="outputs/空武器圖.png" alt="">
-          <h2 id="itemModalName">裝備</h2>
-          <div id="itemModalInfo" class="item-modal-info"></div>
-          <button id="itemModalActionBtn" class="small-button" type="button">穿上</button>
-          <button id="closeItemModalBtn" class="small-button" type="button">關閉</button>
-        </div>
-      </div>
-
       <div id="saveEditorModal" class="settings-modal">
         <div class="settings-box save-editor-box">
           <h2>存檔編輯</h2>
@@ -153,13 +135,41 @@
       </div>
     </section>
 
+    <section id="bag" class="screen">
+      <div class="bag-screen">
+        <h2>包包</h2>
+        <div class="bag-loadout">
+          <button class="bag-equipped-slot" data-bag-type="武器" type="button"><img id="bagEquippedWeapon" src="outputs/空武器圖.png" alt="空武器"><span id="bagEquippedWeaponLevel" class="item-level-label"></span></button>
+          <button class="bag-equipped-slot" data-bag-type="護甲" type="button"><img id="bagEquippedArmor" src="outputs/空護甲圖.png" alt="空護甲"><span id="bagEquippedArmorLevel" class="item-level-label"></span></button>
+          <button id="bagHeroInfoBtn" class="bag-hero-button" type="button"><img src="outputs/愛的家.png?v=2" alt="愛的家"></button>
+          <button class="bag-equipped-slot" data-bag-type="靴子" type="button"><img id="bagEquippedShoes" src="outputs/空靴子圖.png" alt="空鞋子"><span id="bagEquippedShoesLevel" class="item-level-label"></span></button>
+          <button class="bag-equipped-slot" data-bag-type="飾品" type="button"><img id="bagEquippedAccessory" src="outputs/空飾品圖.png" alt="空飾品"><span id="bagEquippedAccessoryLevel" class="item-level-label"></span></button>
+        </div>
+        <button id="inventoryFilterBtn" class="small-button" type="button">搜尋</button>
+        <div id="inventoryFilterPanel" class="inventory-filter-panel">
+          <label>稀有度<select id="rarityFilterOperator"><option value="any">任意</option><option value="gt">大於</option><option value="lt">小於</option><option value="eq">等於</option></select><select id="rarityFilterValue"><option value="普通">普通</option><option value="稀有">稀有</option><option value="史詩">史詩</option><option value="傳奇">傳奇</option></select></label>
+          <label>等級<select id="levelFilterOperator"><option value="any">任意</option><option value="gt">大於</option><option value="lt">小於</option><option value="eq">等於</option></select><input id="levelFilterValue" type="number" min="1" value="1"></label>
+          <label>部位<select id="typeFilterValue"><option value="any">任意部位</option><option value="武器">武器</option><option value="護甲">護甲</option><option value="靴子">靴子</option><option value="飾品">飾品</option></select></label>
+        </div>
+        <div id="inventoryList" class="inventory-list bag-inventory-list"></div>
+      </div>
+      <div id="itemModal" class="settings-modal">
+        <div class="settings-box item-box">
+          <img id="itemModalImage" class="item-modal-image" src="outputs/空武器圖.png" alt="">
+          <h2 id="itemModalName">裝備</h2>
+          <div id="itemModalInfo" class="item-modal-info"></div>
+          <button id="itemModalActionBtn" class="small-button" type="button">穿上</button>
+          <button id="closeItemModalBtn" class="small-button" type="button">關閉</button>
+        </div>
+      </div>
+    </section>
+
     <section id="blacksmith" class="screen">
       <div class="blacksmith-screen">
         <div id="blacksmithModeSelect" class="blacksmith-mode-select">
-          <button id="openUpgradeModeBtn" class="primary-button" type="button">升級</button>
-          <button id="openComposeModeBtn" class="primary-button" type="button">合成</button>
-          <button id="openSmeltModeBtn" class="primary-button" type="button">熔煉</button>
-          <button id="blacksmithSelectBackBtn" class="small-button" type="button">回大廳</button>
+          <button id="openUpgradeModeBtn" class="primary-button" type="button"><img src="outputs/裝備升級圖.png" alt="升級"></button>
+          <button id="openComposeModeBtn" class="primary-button" type="button"><img src="outputs/裝備合成圖.png" alt="合成"></button>
+          <button id="openSmeltModeBtn" class="primary-button" type="button"><img src="outputs/裝備熔煉圖.png" alt="熔煉"></button>
         </div>
 
         <div id="blacksmithComposePanel" class="blacksmith-panel">

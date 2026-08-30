@@ -37,6 +37,14 @@ button {
   display: flex;
 }
 
+.tutorial-overlay.is-dialogue-hidden .tutorial-dialogue {
+  display: none;
+}
+
+.tutorial-overlay.is-bottom-ui-guide {
+  padding-bottom: 110px;
+}
+
 .tutorial-overlay.is-pass-through {
   pointer-events: none;
 }
@@ -640,6 +648,10 @@ h1 {
   transform: translateX(-50%);
 }
 
+.lobby-bottom-icons.is-tutorial-active {
+  z-index: 101;
+}
+
 .lobby-bottom-icons button {
   width: 100%;
   height: 100%;
@@ -703,6 +715,10 @@ h1 {
 }
 
 @media (min-width: 421px) {
+  .tutorial-overlay.is-bottom-ui-guide {
+    padding-bottom: 190px;
+  }
+
   .money-display,
   .volume-toggle-button,
   .volume-controls {

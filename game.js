@@ -416,6 +416,7 @@ let tutorialTyping = false;
 let tutorialTypingTimer = null;
 let tutorialTypingVersion = 0;
 let tutorialTypingMarkup = "";
+let tutorialHideDialogueAfterTyping = false;
 let tutorialAwaitingMove = false;
 let tutorialAwaitingDodge = false;
 let tutorialPigBulletPaused = false;
@@ -688,7 +689,7 @@ function showScreen(screen) {
   blacksmithScreen.classList.toggle("screen-active", screen === "blacksmith");
   shopScreen.classList.toggle("screen-active", screen === "shop");
   dailyTasksScreen.classList.toggle("screen-active", screen === "dailyTasks");
-  if (screen === "game") {
+  if (screen === "game" || screen === "bagOpening") {
     lobbyBottomUi.classList.add("is-hidden");
     lobbyBottomIcons.classList.add("is-hidden");
   } else if (screen !== "blacksmith") {
@@ -4530,13 +4531,20 @@ Object.defineProperty(tutorialText, "innerHTML", {
 
 function clearTutorialTarget() {
   tutorialTarget?.classList.remove("tutorial-target");
+  tutorialTarget?.closest(".lobby-bottom-icons")?.classList.remove("is-tutorial-active");
   tutorialTarget = null;
+  tutorialHideDialogueAfterTyping = false;
+  tutorialOverlay.classList.remove("is-dialogue-hidden");
+  tutorialOverlay.classList.remove("is-bottom-ui-guide");
   tutorialArrow.classList.remove("is-visible");
 }
 
 function setTutorialTarget(target) {
   clearTutorialTarget();
   tutorialTarget = target;
+  tutorialHideDialogueAfterTyping = [bottomBlacksmithBtn, bottomBagBtn, bottomShopBtn, bottomDailyTaskBtn].includes(target);
+  tutorialOverlay.classList.toggle("is-bottom-ui-guide", tutorialHideDialogueAfterTyping);
+  target.closest(".lobby-bottom-icons")?.classList.add("is-tutorial-active");
   target.classList.add("tutorial-target");
   const rect = target.getBoundingClientRect();
   tutorialArrow.style.left = `${rect.left + rect.width / 2 - 16}px`;
@@ -4683,6 +4691,14 @@ tutorialOverlay.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopImmediatePropagation();
     finishTutorialTyping();
+    return;
+  }
+
+  if (tutorialHideDialogueAfterTyping && !event.target.closest?.(".tutorial-target")) {
+    tutorialHideDialogueAfterTyping = false;
+    tutorialOverlay.classList.add("is-dialogue-hidden");
+    event.preventDefault();
+    event.stopImmediatePropagation();
     return;
   }
 

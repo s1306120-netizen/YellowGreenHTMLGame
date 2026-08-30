@@ -688,7 +688,10 @@ function showScreen(screen) {
   blacksmithScreen.classList.toggle("screen-active", screen === "blacksmith");
   shopScreen.classList.toggle("screen-active", screen === "shop");
   dailyTasksScreen.classList.toggle("screen-active", screen === "dailyTasks");
-  if (screen !== "blacksmith") {
+  if (screen === "game") {
+    lobbyBottomUi.classList.add("is-hidden");
+    lobbyBottomIcons.classList.add("is-hidden");
+  } else if (screen !== "blacksmith") {
     lobbyBottomUi.classList.remove("is-hidden");
     lobbyBottomIcons.classList.remove("is-hidden");
   }
@@ -4707,6 +4710,15 @@ document.querySelector(".tutorial-dialogue").addEventListener("click", () => {
 });
 
 tutorialOverlay.addEventListener("dblclick", (event) => event.preventDefault());
+
+// Keep mobile browsers from zooming the fixed game surface with pinch or double-tap gestures.
+document.addEventListener("gesturestart", (event) => event.preventDefault(), { passive: false });
+document.addEventListener("touchmove", (event) => {
+  if (event.touches.length > 1) {
+    event.preventDefault();
+  }
+}, { passive: false });
+document.addEventListener("dblclick", (event) => event.preventDefault());
 
 difficultyInfo.addEventListener("click", () => {
   if (tutorialStep !== "difficulty") {

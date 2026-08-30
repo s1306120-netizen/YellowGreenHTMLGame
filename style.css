@@ -1,3 +1,7 @@
+html {
+  touch-action: none;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -10,7 +14,7 @@ body {
   background: #f1e7cf;
   overflow-x: hidden;
   overscroll-behavior: none;
-  touch-action: manipulation;
+  touch-action: none;
 }
 
 button {

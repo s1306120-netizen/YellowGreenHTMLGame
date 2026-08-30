@@ -4532,6 +4532,7 @@ Object.defineProperty(tutorialText, "innerHTML", {
 function clearTutorialTarget() {
   tutorialTarget?.classList.remove("tutorial-target");
   tutorialTarget?.closest(".lobby-bottom-icons")?.classList.remove("is-tutorial-active");
+  tutorialTarget?.closest(".blacksmith-screen")?.classList.remove("is-tutorial-active");
   tutorialTarget = null;
   tutorialHideDialogueAfterTyping = false;
   tutorialOverlay.classList.remove("is-dialogue-hidden");
@@ -4545,6 +4546,7 @@ function setTutorialTarget(target) {
   tutorialHideDialogueAfterTyping = [bottomBlacksmithBtn, bottomBagBtn, bottomShopBtn, bottomDailyTaskBtn].includes(target);
   tutorialOverlay.classList.toggle("is-bottom-ui-guide", tutorialHideDialogueAfterTyping);
   target.closest(".lobby-bottom-icons")?.classList.add("is-tutorial-active");
+  target.closest(".blacksmith-screen")?.classList.add("is-tutorial-active");
   target.classList.add("tutorial-target");
   const rect = target.getBoundingClientRect();
   tutorialArrow.style.left = `${rect.left + rect.width / 2 - 16}px`;

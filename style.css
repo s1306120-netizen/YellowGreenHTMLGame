@@ -1049,6 +1049,18 @@ h2 {
   text-align: center;
 }
 
+.blacksmith-screen.is-tutorial-active {
+  z-index: 101;
+}
+
+.blacksmith-screen.is-tutorial-active * {
+  pointer-events: none;
+}
+
+.blacksmith-screen.is-tutorial-active .tutorial-target {
+  pointer-events: auto;
+}
+
 .shop-screen {
   position: relative;
   width: min(100%, 420px);

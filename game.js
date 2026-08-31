@@ -1990,8 +1990,6 @@ function renderForgePicker(slotIndex) {
         } else {
           tutorialText.textContent = "三把武器都放好了，現在按合成！";
           setTutorialTarget(synthesizeBtn);
-          tutorialOverlay.classList.add("is-pass-through");
-          tutorialOverlay.classList.add("is-top");
         }
       }
     });
@@ -4544,6 +4542,7 @@ function clearTutorialTarget() {
 
 function setTutorialTarget(target) {
   clearTutorialTarget();
+  tutorialOverlay.classList.remove("is-pass-through");
   tutorialTarget = target;
   tutorialHideDialogueAfterTyping = true;
   tutorialOverlay.classList.toggle("is-bottom-ui-guide", [bottomBlacksmithBtn, bottomBagBtn, bottomShopBtn, bottomDailyTaskBtn].includes(target));

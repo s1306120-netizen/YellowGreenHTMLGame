@@ -37,6 +37,10 @@ button {
   display: flex;
 }
 
+.tutorial-overlay.is-instruction-active {
+  z-index: 103;
+}
+
 .tutorial-overlay.is-dialogue-hidden .tutorial-dialogue {
   display: none;
 }
@@ -61,12 +65,16 @@ button {
   box-shadow: 0 0 0 3px #4b3d00, 0 0 16px #ffd326;
 }
 
+.tutorial-target.tutorial-target-locked {
+  pointer-events: none !important;
+}
+
 .settings-modal.tutorial-modal {
   z-index: 101;
   pointer-events: none;
 }
 
-.settings-modal.tutorial-modal .tutorial-target {
+.settings-modal.tutorial-modal .tutorial-target:not(.tutorial-target-locked) {
   pointer-events: auto;
 }
 
@@ -652,6 +660,14 @@ h1 {
   z-index: 101;
 }
 
+.lobby-bottom-icons.is-tutorial-active * {
+  pointer-events: none;
+}
+
+.lobby-bottom-icons.is-tutorial-active .tutorial-target:not(.tutorial-target-locked) {
+  pointer-events: auto;
+}
+
 .lobby-bottom-icons button {
   width: 100%;
   height: 100%;
@@ -1057,7 +1073,7 @@ h2 {
   pointer-events: none;
 }
 
-.blacksmith-screen.is-tutorial-active .tutorial-target {
+.blacksmith-screen.is-tutorial-active .tutorial-target:not(.tutorial-target-locked) {
   pointer-events: auto;
 }
 

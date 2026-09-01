@@ -3165,6 +3165,11 @@ function showResult(title, earnedMoney) {
   deathDropText.textContent = title === "失敗" ? "身上裝備已掉落" : "";
   updateResultBags();
   resultModal.classList.add("is-active");
+  if (title === "勝利" && tutorialStep === "bags") {
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "挑戰完成了！現在點回大廳，接著開袋子。";
+    setTutorialTarget(resultBackBtn);
+  }
 }
 
 function gameOver() {
@@ -4039,8 +4044,9 @@ heroInfoBtn.addEventListener("click", () => {
   updateHeroStatsList();
   heroInfoModal.classList.add("is-active");
   if (tutorialStep === "hero") {
-    clearTutorialTarget();
-    tutorialOverlay.classList.remove("is-open");
+    tutorialOverlay.classList.add("is-open");
+    tutorialText.textContent = "這裡會顯示你的各項數值。看完後點關閉。";
+    setTutorialTarget(closeHeroInfoBtn);
   }
 });
 
@@ -4050,7 +4056,7 @@ closeHeroInfoBtn.addEventListener("click", () => {
     tutorialStep = "dailyIntro";
     saveGame();
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "接著看看每日任務。現在點下方的每日任務。";
+    tutorialText.textContent = "接著看看每日任務。點擊下方的每日任務來查看。";
     setTutorialTarget(bottomDailyTaskBtn);
   }
 });
@@ -4084,13 +4090,13 @@ otherButton.addEventListener("click", () => {
   } else if (tutorialStep === "equip" || tutorialStep === "dailyIntro" || tutorialStep === "shopIntro") {
     otherMenuModal.classList.add("tutorial-modal");
     if (tutorialStep === "dailyIntro") {
-      tutorialText.textContent = "現在點每日任務。";
+      tutorialText.textContent = "點擊每日任務。";
       setTutorialTarget(dailyTaskBtn);
     } else if (tutorialStep === "shopIntro") {
-      tutorialText.textContent = "現在點商店。";
+      tutorialText.textContent = "點擊商店。";
       setTutorialTarget(otherShopBtn);
     } else {
-      tutorialText.textContent = "現在點包包。";
+      tutorialText.textContent = "點擊包包。";
       setTutorialTarget(otherBagBtn);
     }
   }
@@ -4116,7 +4122,7 @@ dailyTaskBtn.addEventListener("click", () => {
     tutorialStep = "dailyClaim";
     saveGame();
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "每日登入每天都能領一次獎勵，現在點完成領取。";
+    tutorialText.textContent = "每日登入每天都能領一次獎勵，現在點擊完成領取看看吧。";
     setTutorialTarget(dailyLoginBtn);
   }
 });
@@ -4127,7 +4133,7 @@ dailyLoginBtn.addEventListener("click", () => {
     saveGame();
     showScreen("lobby");
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "再來看看商店。現在點下方的商店。";
+    tutorialText.textContent = "再來看看商店。現在點下方商店。";
     setTutorialTarget(bottomShopBtn);
   }
 });
@@ -4145,17 +4151,17 @@ blacksmithButton.addEventListener("click", () => {
     renderBlacksmith();
     showBlacksmithMode("compose");
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "請手動把三把普通武器放進三個格子。先點第一格。";
+    tutorialText.textContent = "把三把普通武器放進三個格子。先點下第一格。";
     setTutorialTarget(forgeSlotButtons[0]);
   }
   if (tutorialStep === "upgrade") {
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "現在點升級，讓剛合成的武器變得更強。";
+    tutorialText.textContent = "點擊升級，讓剛合成的武器變得更強!";
     setTutorialTarget(openUpgradeModeBtn);
   }
   if (tutorialStep === "smeltIntro") {
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "不需要的有等級裝備，可以在熔煉爐還原成 1 級並取回一些金錢。現在點熔煉。";
+    tutorialText.textContent = "有等級的裝備，可以在熔煉爐還原成 1 級並取回一些金錢。點擊熔煉功能。";
     setTutorialTarget(openSmeltModeBtn);
   }
 });
@@ -4174,7 +4180,7 @@ shopButton.addEventListener("click", () => {
   showScreen("shop");
   if (tutorialStep === "shopIntro") {
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "怪物商店會固定刷新一件便宜二手商品。這次有一雙 3 級皮革鞋子，現在買下它。";
+    tutorialText.textContent = "怪物商店會固定刷新一件超便宜的二手商品。這次有一雙 3 級皮革鞋子，現在買下它八。";
     setTutorialTarget(shopBuyBtn);
   }
 });
@@ -4186,7 +4192,7 @@ shopBuyBtn.addEventListener("click", () => {
     saveGame();
     showScreen("lobby");
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "現在介紹熔煉。請點下方的鐵匠鋪。";
+    tutorialText.textContent = "現在來介紹熔煉功能!點擊下方的鐵匠鋪前往";
     setTutorialTarget(bottomBlacksmithBtn);
   }
 });
@@ -4210,7 +4216,7 @@ openUpgradeModeBtn.addEventListener("click", () => {
   if (tutorialStep === "upgrade") {
     tutorialUpgradeAttempts = 0;
     tutorialOverlay.classList.add("is-open");
-    tutorialText.innerHTML = "先放入剛合成的武器，升級可以讓武器變得更強。<br><span class=\"tutorial-danger\">但要小心，升級可能會失敗！</span>";
+    tutorialText.innerHTML = "先放入剛合成的武器，升級可以讓武器變得更強大。<br><span class=\"tutorial-danger\">但要小心，升級可能會失敗！</span>";
     setTutorialTarget(upgradeInputSlot);
   }
 });
@@ -4220,7 +4226,7 @@ openSmeltModeBtn.addEventListener("click", () => {
   showBlacksmithMode("smelt");
   if (tutorialStep === "smeltIntro") {
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "先放入剛買的 3 級皮革鞋子。";
+    tutorialText.textContent = "放入剛買的 3 級皮革鞋子。";
     setTutorialTarget(smeltInputSlot);
   }
 });
@@ -4230,7 +4236,7 @@ blacksmithBackBtn.addEventListener("click", () => {
   if (tutorialStep === "upgrade") {
     showScreen("lobby");
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "請點下方的鐵匠鋪，進入升級教學。";
+    tutorialText.textContent = "點擊下方鐵匠鋪，進入升級教學。";
     setTutorialTarget(bottomBlacksmithBtn);
     return;
   }
@@ -4289,7 +4295,7 @@ itemModalActionBtn.addEventListener("click", () => {
     saveGame();
     showScreen("lobby");
     tutorialOverlay.classList.add("is-open");
-    tutorialText.textContent = "現在點愛的家查看角色數值。";
+    tutorialText.textContent = "點愛的家可以查看角色數值。";
     setTutorialTarget(heroInfoBtn);
   }
 });
@@ -4360,6 +4366,33 @@ resultBackBtn.addEventListener("click", () => {
   showScreen("lobby");
   collectPendingMoney();
 });
+
+function blockTutorialExit(event) {
+  if (tutorialStep === "completed" || (event.currentTarget.classList.contains("tutorial-target") && !event.currentTarget.classList.contains("tutorial-target-locked"))) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopImmediatePropagation();
+}
+
+[
+  backBtn,
+  resultBackBtn,
+  blacksmithBackBtn,
+  upgradeBackBtn,
+  smeltBackBtn,
+  shopBackBtn,
+  dailyTasksBackBtn,
+  closeForgePickerBtn,
+  closeItemModalBtn,
+  closeOtherMenuBtn,
+  bottomBlacksmithBtn,
+  bottomBagBtn,
+  bottomBattleBtn,
+  bottomShopBtn,
+  bottomDailyTaskBtn,
+].forEach((button) => button?.addEventListener("click", blockTutorialExit, true));
 
 bagOpeningScreen.addEventListener("click", clickOpenBag);
 
@@ -4475,7 +4508,7 @@ function setSfxSoundEnabled(enabled) {
 const tutorialIntroLines = [
   "嗨，我是星星。歡迎來到愛的家の小遊戲！",
   "這裡的 BOSS 會不斷發動攻擊，你要在九宮格中移動躲避，並靠自動攻擊擊敗牠們。",
-  "擊敗 BOSS 能拿到袋子、裝備和金錢。接下來我會帶你完成第一場挑戰！",
+  "擊敗 BOSS 可以拿到袋子、裝備和金錢。接下來我會帶你完成第一場挑戰！",
 ];
 
 const tutorialTextContentDescriptor = Object.getOwnPropertyDescriptor(Node.prototype, "textContent");
@@ -4530,8 +4563,9 @@ Object.defineProperty(tutorialText, "innerHTML", {
 function clearTutorialTarget() {
   tutorialTarget?.classList.remove("tutorial-target");
   tutorialTarget?.classList.remove("tutorial-target-locked");
+  tutorialTarget?.closest(".settings-modal")?.classList.remove("tutorial-modal");
   tutorialTarget?.closest(".lobby-bottom-icons")?.classList.remove("is-tutorial-active");
-  tutorialTarget?.closest(".blacksmith-screen")?.classList.remove("is-tutorial-active");
+  tutorialTarget?.closest(".blacksmith-screen, .shop-screen, .daily-tasks-screen, .bag-screen, .result-modal")?.classList.remove("is-tutorial-active");
   tutorialTarget = null;
   tutorialHideDialogueAfterTyping = false;
   tutorialOverlay.classList.remove("is-dialogue-hidden");
@@ -4548,7 +4582,8 @@ function setTutorialTarget(target) {
   tutorialOverlay.classList.toggle("is-bottom-ui-guide", [bottomBlacksmithBtn, bottomBagBtn, bottomShopBtn, bottomDailyTaskBtn].includes(target));
   tutorialOverlay.classList.add("is-instruction-active");
   target.closest(".lobby-bottom-icons")?.classList.add("is-tutorial-active");
-  target.closest(".blacksmith-screen")?.classList.add("is-tutorial-active");
+  target.closest(".blacksmith-screen, .shop-screen, .daily-tasks-screen, .bag-screen, .result-modal")?.classList.add("is-tutorial-active");
+  target.closest(".settings-modal")?.classList.add("tutorial-modal");
   target.classList.add("tutorial-target");
   target.classList.add("tutorial-target-locked");
   const rect = target.getBoundingClientRect();
@@ -4579,13 +4614,13 @@ function showTutorialIntro() {
 function showDifficultyTutorial() {
   tutorialOverlay.classList.add("is-open");
   tutorialNextBtn.hidden = true;
-  setTutorialMessage("先點這個設定框，把這次挑戰調整成 3 隻 BOSS。這樣可提升遇到寶箱怪的機會。", "我知道了");
+  setTutorialMessage("點這個設定框，把這次挑戰調整成 3 隻 BOSS。這樣可以提升遇到寶箱怪的機會。", "我知道了");
   setTutorialTarget(difficultyInfo);
 }
 
 function showBattleTutorialMessage() {
   const bossTips = {
-    "小豬": "小豬會先瞄準一列，再射出子彈。用滑動或方向鍵移到別格躲開！",
+    "小豬": "小豬會瞄準一列，再快速射出子彈。用滑動或方向鍵移到別格躲開！",
     "泡泡": "狼牙棒快碰到你時，利用移動期間的無敵時間即可躲掉攻擊。",
     "格格": "格格會丟出炸彈，紅色格子出現前要離開那裡。",
   };
@@ -4749,7 +4784,7 @@ difficultyInfo.addEventListener("click", () => {
 
   difficultyModal.classList.add("tutorial-modal");
   tutorialNextBtn.hidden = true;
-  setTutorialMessage("把 BOSS 數量改成 3。");
+  setTutorialMessage("把 BOSS 數量改成 3八。");
   setTutorialTarget(bossCountInput);
 });
 
@@ -4759,7 +4794,7 @@ bossCountInput.addEventListener("input", () => {
   }
 
   tutorialDialogueMode = "multiplier";
-  setTutorialMessage("很好！3 隻 BOSS 有 40% 機率遇到寶箱怪。調整倍率可以讓 BOSS 更容易掉落獎勵品，但也會讓 BOSS 變得更強，所以我們這次先不調整。", "設定中");
+  setTutorialMessage("好诶！調整倍率可以讓 BOSS 更容易掉落獎勵品，但也會讓 BOSS 變得更強，我們這次先不要調整。", "設定中");
   tutorialNextBtn.hidden = true;
   setTutorialTarget(multiplierInput);
 });
@@ -4772,7 +4807,7 @@ multiplierInput.addEventListener("pointerdown", (event) => {
   event.preventDefault();
   multiplierInput.value = "1.0";
   tutorialDialogueMode = null;
-  setTutorialMessage("很好！現在按完成。", "設定中");
+  setTutorialMessage("好诶!現在按下完成。", "設定中");
   setTutorialTarget(closeDifficultyBtn);
 });
 
@@ -4781,7 +4816,7 @@ closeDifficultyBtn.addEventListener("click", () => {
     return;
   }
 
-  setTutorialMessage("現在按開始，進入第一場挑戰！");
+  setTutorialMessage("按下開始，進入第一場挑戰吧！");
   tutorialNextBtn.hidden = true;
   difficultyModal.classList.remove("tutorial-modal");
   setTutorialTarget(startBtn);
@@ -4925,6 +4960,6 @@ if (tutorialStep === "intro") {
   showDifficultyTutorial();
 } else if (tutorialStep === "combat") {
   tutorialOverlay.classList.add("is-open");
-  tutorialText.textContent = "繼續新手教學，按開始回到戰鬥。";
+  tutorialText.textContent = "好诶繼續新手教學，按下開始回到戰鬥。";
   setTutorialTarget(startBtn);
 }

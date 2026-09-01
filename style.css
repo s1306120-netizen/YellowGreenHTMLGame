@@ -1065,15 +1065,32 @@ h2 {
   text-align: center;
 }
 
-.blacksmith-screen.is-tutorial-active {
+.blacksmith-screen.is-tutorial-active,
+.shop-screen.is-tutorial-active,
+.daily-tasks-screen.is-tutorial-active,
+.bag-screen.is-tutorial-active,
+.result-modal.is-tutorial-active {
+  position: relative;
   z-index: 101;
 }
 
-.blacksmith-screen.is-tutorial-active * {
+.result-modal.is-tutorial-active {
+  position: absolute;
+}
+
+.blacksmith-screen.is-tutorial-active *,
+.shop-screen.is-tutorial-active *,
+.daily-tasks-screen.is-tutorial-active *,
+.bag-screen.is-tutorial-active *,
+.result-modal.is-tutorial-active * {
   pointer-events: none;
 }
 
-.blacksmith-screen.is-tutorial-active .tutorial-target:not(.tutorial-target-locked) {
+.blacksmith-screen.is-tutorial-active .tutorial-target:not(.tutorial-target-locked),
+.shop-screen.is-tutorial-active .tutorial-target:not(.tutorial-target-locked),
+.daily-tasks-screen.is-tutorial-active .tutorial-target:not(.tutorial-target-locked),
+.bag-screen.is-tutorial-active .tutorial-target:not(.tutorial-target-locked),
+.result-modal.is-tutorial-active .tutorial-target:not(.tutorial-target-locked) {
   pointer-events: auto;
 }
 
